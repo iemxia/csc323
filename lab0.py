@@ -1,16 +1,18 @@
-def main():
-    print("hello world")
-
-    def stringBytesToHexASCII(stringofBytes):
+import codecs
 
 
-    def hexASCIItoBytes(hexASCIIstring):
+def stringBytesToHexASCII(byteString):
+	hex = codecs.encode(byteString, "hex")
+	return hex.decode('UTF-8')
 
 
-    def base64ToBytes(base64String):
+def hexASCIItoBytes(hexASCIIstring):
+	return 0
 
-    def bytesToBase64(bytes):
+
+def base64ToBytes(base64String):
+	return 0
 
 
-if __name__ == "__main__":
-    main()
+def bytesToBase64(bytes):
+	return 0
