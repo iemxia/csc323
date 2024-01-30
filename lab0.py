@@ -1,6 +1,7 @@
 import codecs
 import base64
 import string
+import binascii
 
 
 # Task 1
@@ -33,15 +34,15 @@ def bytesToBase64(byte):
 def xorTwoByteStrings(input_str, key):
     # make the key and input into bytes
     input_str = bytes.fromhex(input_str)
-    key = bytes.fromhex(key)
+    # key = bytes.fromhex(key)
     # repeat key so that it matches the length of the input string
     # question: is it a string of actual bytes? what does it mean may or may not be in the ASCII space?
     new_key = (key * (len(input_str) // len(key) + 1))[:len(input_str)]
     # use zip with for loop to create tuple of bits x and y from input string and key and do the XOR
     result = bytes(x ^ y for x, y in zip(input_str, new_key))
     # convert result to hex encoded string
-    result_hex = result.hex()
-    return result_hex
+    #result_hex = result.hex()
+    return result
 
 
 def englishAnalysis(text):
@@ -67,14 +68,22 @@ def englishAnalysis(text):
 def findMessage(file_path):
     with open(file_path, 'r') as file:
         for hex_string in file:  # go through file line by line
-            hex_string = hex_string.strip()  # remove leading/trailing white space
+            # hex_string = hex_string.strip()  # remove leading/trailing white space
 
             for key in range(256):  # try all possible keys (2^8)
-                decrypted = xorTwoByteStrings(hex_string, format(key, '02x'))  # xor with the key
-                score = englishAnalysis(bytes.fromhex(decrypted).decode('utf-8'))  # score each
+                xorResult = xorTwoByteStrings(hex_string, key.to_bytes(1, 'big'))  # xor with the key
+                # decrypted = stringBytesToHexASCII(xorResult)  # turn bytes to hex ASCII
+                try:
+                    decoded = xorResult.decode('utf-8')  # decode
+                except UnicodeDecodeError:
+                    continue
+                score = englishAnalysis(decoded)  # score each
 
-                if score < 10:  # if score is less than 10, print out that decrypted message
-                    print(f"Key: {format(key, '02x')}, Decrypted Text: {bytes.fromhex(decrypted).decode('utf-8')}")
+                if score < 651:  # if score is less than 10, print out that decrypted message
+                    print(f"Key: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
+
+                # Key: b'\x7f', Decrypted Text: Out on bail, fresh out of jail, California dreaming
+                # Soon as I step on the scene, I'm hearing ladies screaming
 
 
 def main():
