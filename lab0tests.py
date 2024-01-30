@@ -12,6 +12,11 @@ class testLab1(unittest.TestCase):
 		expString = '4f757220737472696e67'
 		self.assertEqual(expString, stringBytesToHexASCII(testString))
 
+	def testBytesToHexASCII3(self):
+		testString = bytes([0b111101])
+		expString = '3d'
+		self.assertEqual(expString, stringBytesToHexASCII(testString))
+
 	def testHextoBytes(self):
 		hex_string = 'deadbeef'
 		exp_string = b'\xde\xad\xbe\xef'
