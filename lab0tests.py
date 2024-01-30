@@ -12,6 +12,37 @@ class testLab1(unittest.TestCase):
 		expString = '4f757220737472696e67'
 		self.assertEqual(expString, stringBytesToHexASCII(testString))
 
+	def testHextoBytes(self):
+		hex_string = 'deadbeef'
+		exp_string = b'\xde\xad\xbe\xef'
+		self.assertEqual(exp_string, hexASCIItoBytes(hex_string))
+
+	def testHextoBytes2(self):
+		hex_string = '01020e0f0f'
+		exp_string = b'\x01\x02\x0e\x0f\x0f'
+		self.assertEqual(exp_string, hexASCIItoBytes(hex_string))
+
+	def testBase64toBytes(self):
+		base64_string = 'aGVsbG8='
+		exp_string = b'hello'
+		self.assertEqual(exp_string, base64ToBytes(base64_string))
+
+	def testBase64toBytes2(self):
+		base64_string = 'Y3NjIDMyMyBsYWIgMQ=='
+		exp_string = b'csc 323 lab 1'
+		self.assertEqual(exp_string, base64ToBytes(base64_string))
+
+	def testBytestoBase64(self):
+		input_bytes = b'xia websterrrr'
+		exp_string = 'eGlhIHdlYnN0ZXJycnI='
+		self.assertEqual(exp_string, bytesToBase64(input_bytes))
+
+	def testBytestoBase642(self):
+		input_bytes = b'today is january 24 2024'
+		exp_string = 'dG9kYXkgaXMgamFudWFyeSAyNCAyMDI0'
+		self.assertEqual(exp_string, bytesToBase64(input_bytes))
+
+
 
 
 if __name__ == '__main__':
