@@ -1,7 +1,6 @@
 import codecs
 import base64
 import string
-import binascii
 
 
 # Task 1
@@ -32,16 +31,11 @@ def bytesToBase64(byte):
 
 # Task 2
 def xorTwoByteStrings(input_str, key):
-    # make the key and input into bytes
-    input_str = bytes.fromhex(input_str)
-    # key = bytes.fromhex(key)
     # repeat key so that it matches the length of the input string
-    # question: is it a string of actual bytes? what does it mean may or may not be in the ASCII space?
     new_key = (key * (len(input_str) // len(key) + 1))[:len(input_str)]
     # use zip with for loop to create tuple of bits x and y from input string and key and do the XOR
     result = bytes(x ^ y for x, y in zip(input_str, new_key))
-    # convert result to hex encoded string
-    #result_hex = result.hex()
+    # return the XOR'd result byte
     return result
 
 
@@ -72,7 +66,8 @@ def findMessage(file_path):
             # hex_string = hex_string.strip()  # remove leading/trailing white space
 
             for key in range(256):  # try all possible keys (2^8)
-                xorResult = xorTwoByteStrings(hex_string, key.to_bytes(1, 'big'))  # xor with the key
+                byteString = hexASCIItoBytes(hex_string)
+                xorResult = xorTwoByteStrings(byteString, key.to_bytes(1, 'big'))  # xor with the key
                 # decrypted = stringBytesToHexASCII(xorResult)  # turn bytes to hex ASCII
                 try:
                     decoded = xorResult.decode('utf-8')  # decode
@@ -88,10 +83,20 @@ def findMessage(file_path):
 
 
 def findKeyLen(text):
-    return 0
+    keyLen = 3  # placeholder for now
+    return keyLen
 
-def multiByteXor(text):
-    return 0
+def multiByteXor(file_path):
+    with open(file_path, 'r') as file:  # open file for reading
+        ct = file.read()  # read contents of file
+        keyLen = findKeyLen(ct)  # find the possible keyLength that has been XOR'd
+        bytesString = base64ToBytes(ct)  # convert the ciphertext back to bytes from bas64
+        for key in range(2 ** keyLen):  # iterate through all possible keys
+            xorResult = xorTwoByteStrings(bytesString, key.to_bytes(1, 'big'))  # XOR the bytes with possible key
+            
+
+
+    return 0  # placeholder
 
 
 def main():
