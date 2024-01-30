@@ -42,6 +42,12 @@ class testLab1(unittest.TestCase):
 		exp_string = 'dG9kYXkgaXMgamFudWFyeSAyNCAyMDI0'
 		self.assertEqual(exp_string, bytesToBase64(input_bytes))
 
+	def testXORsamelength(self):
+		input_str = b'0100100'
+		key = b'1001010'
+		exp_res = b'\x01\x01\x00\x01\x01\x01\x00'
+		# exp_res = b'1101110'  says it should be hexadecimal bytes? I just want it to be normal binary bytes? which is right?
+		self.assertEqual(exp_res, xorTwoByteStrings(input_str, key))
 
 
 
