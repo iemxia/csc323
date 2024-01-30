@@ -1,6 +1,7 @@
 import codecs
 import base64
 import string
+import collections
 
 
 # Task 1
@@ -55,7 +56,7 @@ def englishAnalysis(text):
     # Get obs letter frequencies
     obs_freq = {char: text.count(char) / len(text) for char in string.ascii_lowercase}
     # Get the sum of squared differences between obs and exp frequencies (Chi squared method statistics)
-    score = sum((obs_freq[char] - frequencies[char])**2 for char in string.ascii_lowercase)
+    score = sum((obs_freq[char] - frequencies[char])**2 / 100 for char in string.ascii_lowercase)
     return score
 
 
@@ -63,8 +64,6 @@ def englishAnalysis(text):
 def findMessage(file_path):
     with open(file_path, 'r') as file:
         for hex_string in file:  # go through file line by line
-            # hex_string = hex_string.strip()  # remove leading/trailing white space
-
             for key in range(256):  # try all possible keys (2^8)
                 byteString = hexASCIItoBytes(hex_string)
                 xorResult = xorTwoByteStrings(byteString, key.to_bytes(1, 'big'))  # xor with the key
@@ -75,32 +74,60 @@ def findMessage(file_path):
                     continue
                 score = englishAnalysis(decoded)  # score each
 
-                if score < 647:  # lower the score, closer to eng, print out that decrypted message
+                if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
                     print(f"Key: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
 
                 # Key: b'\x7f', Decrypted Text: Out on bail, fresh out of jail, California dreaming
                 # Soon as I step on the scene, I'm hearing ladies screaming
 
 
-def findKeyLen(text):
-    keyLen = 3  # placeholder for now
-    return keyLen
+# function to calculate the IOC on a text
+def calculateIOC(text):
+    n = len(text)  # get length of text
+    # calculate IOC according to formula found online at: https://pages.mtu.edu/~shene/NSF-4/Tutorial/VIG/Vig-IOC.html
+    frequency_sum = sum(count * (count - 1) for count in collections.Counter(text).values())
+    return frequency_sum / (n * (n - 1))
+
+
+def findKeyLen(byteString):
+    decoded = byteString.decode('utf-8')  # decode the bytes back to readable language
+    iocValues = []
+    for key_length in range(2, min(20, len(byteString)) // 2):  # go through limited num of key lengths
+        # splice the ciphertext into segments as long
+        # as key length
+        segments = [decoded[i::key_length] for i in range(key_length)]
+        # calculate average IOC value over segments for one key length
+        ioc = sum(calculateIOC(segment) for segment in segments) / key_length
+        # add the IOC value to the list
+        iocValues.append((key_length, ioc))
+
+    # IOC value for english
+    expIOC = 0.067
+    # get the minimum deviance from the expected IOC, in the list, and return corresponding key length in index 0 of
+    # tuple
+    potKeyLen = min(iocValues, key=lambda x: abs(x[1] - expIOC))[0]
+    return potKeyLen
+
 
 def multiByteXor(file_path):
     with open(file_path, 'r') as file:  # open file for reading
         ct = file.read()  # read contents of file
-        keyLen = findKeyLen(ct)  # find the possible keyLength that has been XOR'd
         bytesString = base64ToBytes(ct)  # convert the ciphertext back to bytes from bas64
+        keyLen = findKeyLen(bytesString)  # find the possible keyLength that has been XOR'd
         for key in range(2 ** keyLen):  # iterate through all possible keys
             xorResult = xorTwoByteStrings(bytesString, key.to_bytes(1, 'big'))  # XOR the bytes with possible key
-            
-
-
-    return 0  # placeholder
+            try:
+                decoded = xorResult.decode('utf-8')  # decode the xorResult byte string back to readable language
+            except UnicodeDecodeError:  # if non readable, skip the key
+                continue
+            score = englishAnalysis(decoded)  # analyze english probability
+            if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
+                print(f"Key: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
 
 
 def main():
     findMessage('Lab0.TaskII.B.txt')
+    multiByteXor('Lab0.TaskII.C.txt')
 
 
 if __name__ == "__main__":
