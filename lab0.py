@@ -65,6 +65,7 @@ def englishAnalysis(text):
     return score
 
 
+# Task 2 B
 def findMessage(file_path):
     with open(file_path, 'r') as file:
         for hex_string in file:  # go through file line by line
@@ -79,11 +80,18 @@ def findMessage(file_path):
                     continue
                 score = englishAnalysis(decoded)  # score each
 
-                if score < 651:  # if score is less than 10, print out that decrypted message
+                if score < 647:  # lower the score, closer to eng, print out that decrypted message
                     print(f"Key: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
 
                 # Key: b'\x7f', Decrypted Text: Out on bail, fresh out of jail, California dreaming
                 # Soon as I step on the scene, I'm hearing ladies screaming
+
+
+def findKeyLen(text):
+    return 0
+
+def multiByteXor(text):
+    return 0
 
 
 def main():
