@@ -75,8 +75,8 @@ def findMessage(file_path):
                 score = englishAnalysis(decoded)  # score each
 
                 if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
-                    print(f"Key: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
-
+                    print(f"Part B: Key: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
+                # ANSWER:
                 # Key: b'\x7f', Decrypted Text: Out on bail, fresh out of jail, California dreaming
                 # Soon as I step on the scene, I'm hearing ladies screaming
 
@@ -90,12 +90,11 @@ def calculateIOC(text):
 
 
 def findKeyLen(byteString):
-    decoded = byteString.decode('utf-8')  # decode the bytes back to readable language
     iocValues = []
     for key_length in range(2, min(20, len(byteString)) // 2):  # go through limited num of key lengths
         # splice the ciphertext into segments as long
         # as key length
-        segments = [decoded[i::key_length] for i in range(key_length)]
+        segments = [byteString[i::key_length] for i in range(key_length)]
         # calculate average IOC value over segments for one key length
         ioc = sum(calculateIOC(segment) for segment in segments) / key_length
         # add the IOC value to the list
@@ -115,6 +114,7 @@ def multiByteXor(file_path):
         bytesString = base64ToBytes(ct)  # convert the ciphertext back to bytes from bas64
         keyLen = findKeyLen(bytesString)  # find the possible keyLength that has been XOR'd
         for key in range(2 ** keyLen):  # iterate through all possible keys
+            print(keyLen)
             xorResult = xorTwoByteStrings(bytesString, key.to_bytes(1, 'big'))  # XOR the bytes with possible key
             try:
                 decoded = xorResult.decode('utf-8')  # decode the xorResult byte string back to readable language
