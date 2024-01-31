@@ -56,7 +56,7 @@ class testLab1(unittest.TestCase):
 
 	def testSplitBins(self):
 		keyLen = 5
-		ciphertext = '12345123451234512345'
+		ciphertext = b'12345123451234512345'
 		bins = splitBins(ciphertext, keyLen)
 		for i, bin in enumerate(bins):
 			print(f'Bin {i+1}: {bin}')

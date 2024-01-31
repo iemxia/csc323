@@ -91,7 +91,7 @@ def calculateIOC(text):
 
 # function to split the cipher text into appropriate bins
 def splitBins(ciphertext, keyLen):
-    bins = [[] for _ in range(keyLen)]  # crate empty bins based on keyLen
+    bins = [bytearray(b'') for _ in range(keyLen)]  # create empty bins based on keyLen
     for i in range(len(ciphertext)):
         bins[i % keyLen].append(ciphertext[i])  # assign byte to correct bins
     return bins
@@ -128,17 +128,35 @@ def multiByteXor(file_path):
         bytesString = base64ToBytes(ct)  # convert the ciphertext back to bytes from bas64
         keyLen = findKeyLen(bytesString)  # find the possible keyLength that has been XOR'd
         print(f'Key length: {keyLen}')
-        for i in range(keyLen):
-            segments = [bytesString[i::keyLen]]  # split into keyLen bins
+        bins = splitBins(bytesString, keyLen)  # split into keyLen bins
+        allPosKeys = []
+        expIOC = 0.067
+        for i in range(len(bins)):  # go through all bins
+            posKey = bytearray(b'')
             for key in range(256):  # iterate through all possible keys
-                xorResult = xorTwoByteStrings(segments[i], key.to_bytes(1, 'big'))  # XOR the byte with possible key
+                xorResult = xorTwoByteStrings(bins[i], key.to_bytes(1, 'big'))  # XOR the byte with possible key
                 try:
-                    decoded = xorResult.decode('utf-8')  # decode the xorResult byte string back to readable language
+                    decoded = xorResult.decode('ascii')  # decode the xorResult byte string back to readable language
                 except UnicodeDecodeError:  # if non readable, skip the key
                     continue
+                # ioc = calculateIOC(bins[i])
+                # if (expIOC - 0.0015) < ioc < (expIOC + 0.0015):
+                #     print(f'IOC: {ioc} Bin: {i + 1}, Key: {key.to_bytes(1, "big")}, Decrypted Text: {decoded}\n')
+                #     posKey.append(key)
                 score = englishAnalysis(decoded)  # analyze english probability
                 if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
-                    print(f"Key Part C: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
+                    print(f"Score: {score} Bin {i+1}: Key Part C: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}\n")
+                    posKey.append(key)  # add byte to pos key if it result is close to english
+            allPosKeys.append(posKey)   # add whole possible key to an array
+        print(f'Possible keys: {allPosKeys}')
+        for aKey in allPosKeys:
+            posResult = xorTwoByteStrings(bytesString, aKey * (len(bytesString) // keyLen + 1))
+            print(f'XOR byteString with {key}')
+            try:
+                decrypted = posResult.decode('UTF-8')
+            except UnicodeDecodeError:  # skip if results in non readable
+                continue
+            print(f'Key: {aKey} Decrypted message: {decrypted}')
 
 
 def main():
