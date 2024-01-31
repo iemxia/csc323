@@ -91,11 +91,14 @@ def calculateIOC(text):
 
 def findKeyLen(byteString):
     iocValues = []
-    for key_length in range(2, min(20, len(byteString)) // 2):  # go through limited num of key lengths
+    for key_length in range(2, len(byteString)//2):  # go through all possible key lengths
         # splice the ciphertext into segments as long
         # as key length
-        segments = [byteString[i::key_length] for i in range(key_length)]
-        # calculate average IOC value over segments for one key length
+        segments = [byteString[i: i + key_length] for i in range(0, len(byteString), key_length)]
+        # avoid divide by zero error, skip any segments smaller than 2
+        if any(len(segment) < 2 for segment in segments):
+            continue
+            # calculate average IOC value over segments for one key length
         ioc = sum(calculateIOC(segment) for segment in segments) / key_length
         # add the IOC value to the list
         iocValues.append((key_length, ioc))
@@ -104,6 +107,7 @@ def findKeyLen(byteString):
     expIOC = 0.067
     # get the minimum deviance from the expected IOC, in the list, and return corresponding key length in index 0 of
     # tuple
+    # [key length, IOC value]
     potKeyLen = min(iocValues, key=lambda x: abs(x[1] - expIOC))[0]
     return potKeyLen
 
@@ -111,18 +115,24 @@ def findKeyLen(byteString):
 def multiByteXor(file_path):
     with open(file_path, 'r') as file:  # open file for reading
         ct = file.read()  # read contents of file
-        bytesString = base64ToBytes(ct)  # convert the ciphertext back to bytes from bas64
-        keyLen = findKeyLen(bytesString)  # find the possible keyLength that has been XOR'd
-        for key in range(2 ** keyLen):  # iterate through all possible keys
-            print(keyLen)
-            xorResult = xorTwoByteStrings(bytesString, key.to_bytes(1, 'big'))  # XOR the bytes with possible key
-            try:
-                decoded = xorResult.decode('utf-8')  # decode the xorResult byte string back to readable language
-            except UnicodeDecodeError:  # if non readable, skip the key
-                continue
-            score = englishAnalysis(decoded)  # analyze english probability
-            if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
-                print(f"Key: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
+        decodedhex = base64.b64decode(ct)
+        decoded = stringBytesToHexASCII(decodedhex)
+        print(f'Length of hex byte: {len(decodedhex)}')
+        print(f'Len of decoded ASCII string: {len(decoded)/2}')
+        keyLen = findKeyLen(decoded)  # find the possible keyLength that has been XOR'd
+        print(f'Len of pot key in bytes: {keyLen}')
+        # iterate through all possible keys in decimal num form
+        # for key in range(2**(8 * (keyLen - 1)), 2**(8 * keyLen)):
+        #     print(f'Key in dec: {key}')
+        #     keyBytes = bytes(key)
+        #     xorResult = xorTwoByteStrings(decoded, keyBytes)  # XOR the bytes with possible key
+        #     try:
+        #         decoded = xorResult.decode('utf-8')  # decode the xorResult byte string back to readable language
+        #     except UnicodeDecodeError:  # if non readable, skip the key
+        #         continue
+        #     score = englishAnalysis(decoded)  # analyze english probability
+        #     if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
+        #         print(f"Key: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
 
 
 def main():
