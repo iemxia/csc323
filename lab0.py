@@ -91,6 +91,7 @@ def calculateIOC(text):
 
 def findKeyLen(byteString):
     iocValues = []
+    print(len(byteString)//2)
     for key_length in range(2, min(20, len(byteString)) // 2):  # go through limited num of key lengths
         # splice the ciphertext into segments as long
         # as key length
@@ -99,7 +100,6 @@ def findKeyLen(byteString):
         ioc = sum(calculateIOC(segment) for segment in segments) / key_length
         # add the IOC value to the list
         iocValues.append((key_length, ioc))
-
     # IOC value for english
     expIOC = 0.067
     # get the minimum deviance from the expected IOC, in the list, and return corresponding key length in index 0 of
@@ -113,7 +113,7 @@ def multiByteXor(file_path):
         ct = file.read()  # read contents of file
         bytesString = base64ToBytes(ct)  # convert the ciphertext back to bytes from bas64
         keyLen = findKeyLen(bytesString)  # find the possible keyLength that has been XOR'd
-        print(keyLen)
+        print(f'Key length: {keyLen}')
         for key in range(2 ** keyLen):  # iterate through all possible keys
             xorResult = xorTwoByteStrings(bytesString, key.to_bytes(1, 'big'))  # XOR the bytes with possible key
             try:
