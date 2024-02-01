@@ -93,16 +93,20 @@ def calculateIOC(text):
 
 # function to split the cipher text into appropriate bins
 def splitBins(ciphertext, keyLen):
-    bins = [bytearray(b'') for _ in range(keyLen)]  # create empty bins based on keyLen
-    for i in range(len(ciphertext)):
-        bins[i % keyLen].append(ciphertext[i])  # assign byte to correct bins
+    if isinstance(ciphertext, bytes):
+        bins = [bytearray(b'') for _ in range(keyLen)]  # create empty bins based on keyLen
+        for i in range(len(ciphertext)):
+            bins[i % keyLen].append(ciphertext[i])  # assign byte to correct bins
+    else:  # same thing but for string
+        bins = ['' for _ in range(keyLen)]
+        for i in range(len(ciphertext)):
+            bins[i % keyLen] += ciphertext[i]
     return bins
 
 
 # function to find the key length
 def findKeyLen(byteString):
     iocValues = []
-    print(len(byteString)//2)
     for key_length in range(2, min(20, len(byteString)) // 2):  # go through limited num of key lengths
         # splice the ciphertext into segments as long
         # as key length
@@ -157,13 +161,19 @@ def multiByteXor(file_path):
                 decrypted = decryptedMessage.decode('utf-8')  # decrypt it
             ioc.append((calculateIOC(decrypted), keyCombos, decrypted))  # add tuple with IOC score and keycombo
         bestCandidates = heapq.nsmallest(2, ioc, key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
-        print(f'bestCandidates:\nKey: {bestCandidates[0][1]} Message:\n{bestCandidates[0][2]}\nKey: {bestCandidates[1][1]} Message:\n{bestCandidates[1][2]}')  # print candidates
+        print(f'Part C bestCandidates:\nKey: {bestCandidates[0][1]} Message:\n{bestCandidates[0][2]}\nKey: {bestCandidates[1][1]} Message:\n{bestCandidates[1][2]}')  # print candidates
 
+
+def vigenere(file_path):
+     with open(file_path, 'r') as file:
+         ct = file.read()
+         keyLen = findKeyLen(ct)
 
 
 def main():
     findMessage('Lab0.TaskII.B.txt')
     multiByteXor('Lab0.TaskII.C.txt')
+    vigenere('Lab0.TaskII.D.txt')
 
 
 if __name__ == "__main__":
