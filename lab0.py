@@ -157,7 +157,7 @@ def multiByteXor(file_path):
                 decrypted = decryptedMessage.decode('utf-8')  # decrypt it
             ioc.append((calculateIOC(decrypted), keyCombos, decrypted))  # add tuple with IOC score and keycombo
         bestCandidates = heapq.nsmallest(2, ioc, key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
-        print(f'bestCandidates: {bestCandidates[0]}\n{bestCandidates[1]}')  # print candidates
+        print(f'bestCandidates:\nKey: {bestCandidates[0][1]} Message:\n{bestCandidates[0][2]}\nKey: {bestCandidates[1][1]} Message:\n{bestCandidates[1][2]}')  # print candidates
 
 
 
