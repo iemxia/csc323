@@ -78,7 +78,7 @@ def findMessage(file_path):
 
                 if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
                     print(f"Key Part B: {key.to_bytes(1, 'big')}, Score: {score}, Decrypted Text: {decoded}")
-
+                    
                 # Key: b'\x7f', Decrypted Text: Out on bail, fresh out of jail, California dreaming
                 # Soon as I step on the scene, I'm hearing ladies screaming
 
@@ -116,6 +116,7 @@ def findKeyLen(byteString):
     expIOC = 0.067
     # get the minimum deviance from the expected IOC, in the list, and return corresponding key length in index 0 of
     # tuple
+    # [key length, IOC value]
     potKeyLen = min(iocValues, key=lambda x: abs(x[1] - expIOC))[0]
     return potKeyLen
 
@@ -157,6 +158,7 @@ def multiByteXor(file_path):
             ioc.append((calculateIOC(decrypted), keyCombos, decrypted))  # add tuple with IOC score and keycombo
         bestCandidates = heapq.nsmallest(2, ioc, key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
         print(f'bestCandidates: {bestCandidates[0]}\n{bestCandidates[1]}')  # print candidates
+
 
 
 def main():
