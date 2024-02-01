@@ -2,6 +2,8 @@ import codecs
 import base64
 import string
 import collections
+import heapq
+import itertools
 
 
 # Task 1
@@ -75,8 +77,8 @@ def findMessage(file_path):
                 score = englishAnalysis(decoded)  # score each
 
                 if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
-                    print(f"Part B: Key: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
-                # ANSWER:
+                    print(f"Key Part B: {key.to_bytes(1, 'big')}, Score: {score}, Decrypted Text: {decoded}")
+                    
                 # Key: b'\x7f', Decrypted Text: Out on bail, fresh out of jail, California dreaming
                 # Soon as I step on the scene, I'm hearing ladies screaming
 
@@ -89,20 +91,27 @@ def calculateIOC(text):
     return frequency_sum / (n * (n - 1))
 
 
+# function to split the cipher text into appropriate bins
+def splitBins(ciphertext, keyLen):
+    bins = [bytearray(b'') for _ in range(keyLen)]  # create empty bins based on keyLen
+    for i in range(len(ciphertext)):
+        bins[i % keyLen].append(ciphertext[i])  # assign byte to correct bins
+    return bins
+
+
+# function to find the key length
 def findKeyLen(byteString):
     iocValues = []
-    for key_length in range(2, len(byteString)//2):  # go through all possible key lengths
+    print(len(byteString)//2)
+    for key_length in range(2, min(20, len(byteString)) // 2):  # go through limited num of key lengths
         # splice the ciphertext into segments as long
         # as key length
-        segments = [byteString[i: i + key_length] for i in range(0, len(byteString), key_length)]
-        # avoid divide by zero error, skip any segments smaller than 2
-        if any(len(segment) < 2 for segment in segments):
-            continue
-            # calculate average IOC value over segments for one key length
+        segments = splitBins(byteString, key_length)
+        # segments = [byteString[i::key_length] for i in range(key_length)]
+        # calculate average IOC value over segments for one key length
         ioc = sum(calculateIOC(segment) for segment in segments) / key_length
         # add the IOC value to the list
         iocValues.append((key_length, ioc))
-
     # IOC value for english
     expIOC = 0.067
     # get the minimum deviance from the expected IOC, in the list, and return corresponding key length in index 0 of
@@ -112,27 +121,44 @@ def findKeyLen(byteString):
     return potKeyLen
 
 
+# go through all 256, xor with the ones in other
+# break cyphertext into 5 bins,and then try all 256 keys for each bin, and then see if the plaintext symbols are english
+# key length of 5: 5 independent single byte xors
+# or in ASCII space, and if they are that's a good candidate
 def multiByteXor(file_path):
     with open(file_path, 'r') as file:  # open file for reading
         ct = file.read()  # read contents of file
-        decodedhex = base64.b64decode(ct)
-        decoded = stringBytesToHexASCII(decodedhex)
-        print(f'Length of hex byte: {len(decodedhex)}')
-        print(f'Len of decoded ASCII string: {len(decoded)/2}')
-        keyLen = findKeyLen(decoded)  # find the possible keyLength that has been XOR'd
-        print(f'Len of pot key in bytes: {keyLen}')
-        # iterate through all possible keys in decimal num form
-        # for key in range(2**(8 * (keyLen - 1)), 2**(8 * keyLen)):
-        #     print(f'Key in dec: {key}')
-        #     keyBytes = bytes(key)
-        #     xorResult = xorTwoByteStrings(decoded, keyBytes)  # XOR the bytes with possible key
-        #     try:
-        #         decoded = xorResult.decode('utf-8')  # decode the xorResult byte string back to readable language
-        #     except UnicodeDecodeError:  # if non readable, skip the key
-        #         continue
-        #     score = englishAnalysis(decoded)  # analyze english probability
-        #     if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
-        #         print(f"Key: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
+        bytesString = base64ToBytes(ct)  # convert the ciphertext back to bytes from bas64
+        keyLen = findKeyLen(bytesString)  # find the possible keyLength that has been XOR'd
+        print(f'Key length: {keyLen}')
+        bins = splitBins(bytesString, keyLen)  # split into bins
+        posKeyList = []
+        for i in range(keyLen):  # iterate through each bin
+            scores = {}  # dictionary for scores
+            posKey = []
+            for key in range(256):  # iterate through all possible keys
+                xorResult = xorTwoByteStrings(bins[i], key.to_bytes(1, 'big'))  # XOR the byte with possible key
+                try:
+                    decoded = xorResult.decode('utf-8')  # decode the xorResult byte string back to readable language
+                except UnicodeDecodeError:  # if non-readable, skip the key
+                    continue
+                if englishAnalysis(decoded) < 6.4635:
+                    posKey.append(key)
+                    scores[key] = englishAnalysis(decoded)  # analyze english probability
+            posKeyList.append(posKey)  # add this to the possible key list
+        expIOC = 0.067
+        ioc = []  # list to hold IOC values
+        for keyCombos in itertools.product(*posKeyList):  # go through all possible key combos
+            decryptedMessage = bytearray(b'')  # make empty decrypted message
+            for i in range(len(bytesString)):  # go through entire ciphertext
+                keyByte = keyCombos[i % keyLen]  # get a single key byte in bucket
+                decryptedByte = bytes([bytesString[i] ^ keyByte])  # XOR each individual byte with the single byte from corresponding key byte
+                decryptedMessage.extend(decryptedByte)  # add the decryption to total message
+                decrypted = decryptedMessage.decode('utf-8')  # decrypt it
+            ioc.append((calculateIOC(decrypted), keyCombos, decrypted))  # add tuple with IOC score and keycombo
+        bestCandidates = heapq.nsmallest(2, ioc, key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
+        print(f'bestCandidates: {bestCandidates[0]}\n{bestCandidates[1]}')  # print candidates
+
 
 
 def main():

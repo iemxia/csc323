@@ -54,7 +54,12 @@ class testLab1(unittest.TestCase):
 		# exp_res = b'1101110'  says it should be hexadecimal bytes? I just want it to be normal binary bytes? which is right?
 		self.assertEqual(exp_res, xorTwoByteStrings(input_str, key))
 
-
+	def testSplitBins(self):
+		keyLen = 5
+		ciphertext = b'12345123451234512345'
+		bins = splitBins(ciphertext, keyLen)
+		for i, bin in enumerate(bins):
+			print(f'Bin {i+1}: {bin}')
 
 if __name__ == '__main__':
 	unittest.main()
