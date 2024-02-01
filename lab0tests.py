@@ -61,6 +61,13 @@ class testLab1(unittest.TestCase):
 		for i, bin in enumerate(bins):
 			print(f'Bin {i+1}: {bin}')
 
+	def testDecryptVigenere(self):
+		ct = 'GCYCZFMLYLEIM'
+		key = 'AYUSH'
+		message = 'GEEKSFORGEEKS'
+		self.assertEqual(message, decryptVigenere(ct, key))
+
+
 if __name__ == '__main__':
 	unittest.main()
 

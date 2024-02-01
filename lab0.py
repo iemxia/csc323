@@ -107,21 +107,20 @@ def splitBins(ciphertext, keyLen):
 # function to find the key length
 def findKeyLen(byteString):
     iocValues = []
-    for key_length in range(2, min(20, len(byteString)) // 2):  # go through limited num of key lengths
-        # splice the ciphertext into segments as long
-        # as key length
-        segments = splitBins(byteString, key_length)
-        # segments = [byteString[i::key_length] for i in range(key_length)]
-        # calculate average IOC value over segments for one key length
-        ioc = sum(calculateIOC(segment) for segment in segments) / key_length
-        # add the IOC value to the list
-        iocValues.append((key_length, ioc))
     # IOC value for english
     expIOC = 0.067
-    # get the minimum deviance from the expected IOC, in the list, and return corresponding key length in index 0 of
-    # tuple
-    # [key length, IOC value]
-    potKeyLen = min(iocValues, key=lambda x: abs(x[1] - expIOC))[0]
+    for key_length in range(2, min(30, len(byteString)) // 2):  # go through limited num of key lengths
+        # splice the ciphertext into segments as long as key length
+        segments = splitBins(byteString, key_length)
+        # calculate average IOC value over segments for one key length
+        ioc = sum(calculateIOC(segment) for segment in segments) / key_length
+        # get min Dev from exp IOC add the IOC value to the list
+        minDev = abs(ioc - expIOC)
+        iocValues.append((key_length, ioc, minDev))
+
+    # [key length, IOC value, minDev]
+    # sort by the minDev from expIOC
+    potKeyLen = sorted(iocValues, key=lambda x: x[2])
     return potKeyLen
 
 
@@ -133,7 +132,7 @@ def multiByteXor(file_path):
     with open(file_path, 'r') as file:  # open file for reading
         ct = file.read()  # read contents of file
         bytesString = base64ToBytes(ct)  # convert the ciphertext back to bytes from bas64
-        keyLen = findKeyLen(bytesString)  # find the possible keyLength that has been XOR'd
+        keyLen = (findKeyLen(bytesString))[0][0]  # find the possible keyLength that has been XOR'd
         print(f'Key length: {keyLen}')
         bins = splitBins(bytesString, keyLen)  # split into bins
         posKeyList = []
@@ -161,13 +160,28 @@ def multiByteXor(file_path):
                 decrypted = decryptedMessage.decode('utf-8')  # decrypt it
             ioc.append((calculateIOC(decrypted), keyCombos, decrypted))  # add tuple with IOC score and keycombo
         bestCandidates = heapq.nsmallest(2, ioc, key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
-        print(f'Part C bestCandidates:\nKey: {bestCandidates[0][1]} Message:\n{bestCandidates[0][2]}\nKey: {bestCandidates[1][1]} Message:\n{bestCandidates[1][2]}')  # print candidates
+        print(f'Part C bestCandidates:\nKey: {bestCandidates[1][1]} Message:\n{bestCandidates[1][2]}')  # print candidates
 
+
+# def decryptVigenere(ciphertext, key):
+#     message = []
+#     for i in range(len(ciphertext)):
+#         x = (ord(ciphertext[i]) - ord(key[i]) + 26) % 26
+#         x += ord('A')
+#         message.append(chr(x))
+#     return "".join(message)
 
 def vigenere(file_path):
+     letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
      with open(file_path, 'r') as file:
          ct = file.read()
-         keyLen = findKeyLen(ct)
+         keyLen = (findKeyLen(ct))[0][0]  # 14
+         bins = splitBins(ct, keyLen)
+         
+
+
+
+
 
 
 def main():
