@@ -167,12 +167,13 @@ def multiByteXor(file_path):
 
 
 def decryptVigenere(ciphertext, key):
-    message = []
+    # make sure the key is as long as the cipher text
+    newKey = (key * (len(ciphertext) // len(key))) + key[:len(ciphertext) % len(key)]
+    message = ''
     for i in range(len(ciphertext)):
-        x = (ord(ciphertext[i]) - ord(key[i]) + 26) % 26
-        x += ord('A')
-        message.append(chr(x))
-    return "".join(message)
+        shift = ord(newKey[i].upper()) - ord('A')
+        message += chr((ord(ciphertext[i]) - shift - ord('A')) % 26 + ord('A'))
+    return message
 
 
 def vigenere(file_path):
@@ -185,6 +186,7 @@ def vigenere(file_path):
         # try every letter possible in each position and do freq analysis on the decrypted message and see if it
         # looks like english
         for i in range(keyLen):
+            print(f'Trying key length: {i+1}')
             scores = {}
             posKey = ''
             for letter in letters:  # go through all possible letters
