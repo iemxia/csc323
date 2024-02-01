@@ -58,7 +58,7 @@ def englishAnalysis(text):
     # Get obs letter frequencies
     obs_freq = {char: text.count(char) / len(text) for char in string.ascii_lowercase}
     # Get the sum of squared differences between obs and exp frequencies (Chi squared method statistics)
-    score = sum((obs_freq[char] - frequencies[char])**2 / 100 for char in string.ascii_lowercase)
+    score = sum((obs_freq[char] - frequencies[char]) ** 2 / 100 for char in string.ascii_lowercase)
     return score
 
 
@@ -78,7 +78,7 @@ def findMessage(file_path):
 
                 if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
                     print(f"Key Part B: {key.to_bytes(1, 'big')}, Score: {score}, Decrypted Text: {decoded}")
-                    
+
                 # Key: b'\x7f', Decrypted Text: Out on bail, fresh out of jail, California dreaming
                 # Soon as I step on the scene, I'm hearing ladies screaming
 
@@ -155,32 +155,45 @@ def multiByteXor(file_path):
             decryptedMessage = bytearray(b'')  # make empty decrypted message
             for i in range(len(bytesString)):  # go through entire ciphertext
                 keyByte = keyCombos[i % keyLen]  # get a single key byte in bucket
-                decryptedByte = bytes([bytesString[i] ^ keyByte])  # XOR each individual byte with the single byte from corresponding key byte
+                decryptedByte = bytes([bytesString[
+                                           i] ^ keyByte])  # XOR each individual byte with the single byte from corresponding key byte
                 decryptedMessage.extend(decryptedByte)  # add the decryption to total message
                 decrypted = decryptedMessage.decode('utf-8')  # decrypt it
             ioc.append((calculateIOC(decrypted), keyCombos, decrypted))  # add tuple with IOC score and keycombo
-        bestCandidates = heapq.nsmallest(2, ioc, key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
-        print(f'Part C bestCandidates:\nKey: {bestCandidates[1][1]} Message:\n{bestCandidates[1][2]}')  # print candidates
+        bestCandidates = heapq.nsmallest(2, ioc,
+                                         key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
+        print(
+            f'Part C bestCandidates:\nKey: {bestCandidates[1][1]} Message:\n{bestCandidates[1][2]}')  # print candidates
 
 
-# def decryptVigenere(ciphertext, key):
-#     message = []
-#     for i in range(len(ciphertext)):
-#         x = (ord(ciphertext[i]) - ord(key[i]) + 26) % 26
-#         x += ord('A')
-#         message.append(chr(x))
-#     return "".join(message)
+def decryptVigenere(ciphertext, key):
+    message = []
+    for i in range(len(ciphertext)):
+        x = (ord(ciphertext[i]) - ord(key[i]) + 26) % 26
+        x += ord('A')
+        message.append(chr(x))
+    return "".join(message)
+
 
 def vigenere(file_path):
-     letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-     with open(file_path, 'r') as file:
-         ct = file.read()
-         keyLen = (findKeyLen(ct))[0][0]  # 14
-         bins = splitBins(ct, keyLen)
-         
-
-
-
+    letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    with open(file_path, 'r') as file:
+        posKeyList = []
+        ct = file.read()
+        keyLen = (findKeyLen(ct))[0][0]  # 14
+        bins = splitBins(ct, keyLen)  # split into bins, for length 14,
+        # try every letter possible in each position and do freq analysis on the decrypted message and see if it
+        # looks like english
+        for i in range(keyLen):
+            scores = {}
+            posKey = ''
+            for letter in letters:  # go through all possible letters
+                decryptResult = decryptVigenere(bins[i], letter)  # decrypt the bins with the letter
+                if englishAnalysis(decryptResult) < 6.4635:  # if passes english test
+                    posKey += letter  # add possible letter to the key
+                    scores[posKey] = englishAnalysis(decryptResult)  # set score in dictionary
+            print(posKey)
+            posKeyList.append(posKey)  # add possible key to total list
 
 
 
