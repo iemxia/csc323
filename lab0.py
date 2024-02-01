@@ -2,6 +2,8 @@ import codecs
 import base64
 import string
 import collections
+import heapq
+import itertools
 
 
 # Task 1
@@ -75,7 +77,7 @@ def findMessage(file_path):
                 score = englishAnalysis(decoded)  # score each
 
                 if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
-                    print(f"Key Part B: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}")
+                    print(f"Key Part B: {key.to_bytes(1, 'big')}, Score: {score}, Decrypted Text: {decoded}")
 
                 # Key: b'\x7f', Decrypted Text: Out on bail, fresh out of jail, California dreaming
                 # Soon as I step on the scene, I'm hearing ladies screaming
@@ -128,35 +130,33 @@ def multiByteXor(file_path):
         bytesString = base64ToBytes(ct)  # convert the ciphertext back to bytes from bas64
         keyLen = findKeyLen(bytesString)  # find the possible keyLength that has been XOR'd
         print(f'Key length: {keyLen}')
-        bins = splitBins(bytesString, keyLen)  # split into keyLen bins
-        allPosKeys = []
-        expIOC = 0.067
-        for i in range(len(bins)):  # go through all bins
-            posKey = bytearray(b'')
+        bins = splitBins(bytesString, keyLen)  # split into bins
+        posKeyList = []
+        for i in range(keyLen):  # iterate through each bin
+            scores = {}  # dictionary for scores
+            posKey = []
             for key in range(256):  # iterate through all possible keys
                 xorResult = xorTwoByteStrings(bins[i], key.to_bytes(1, 'big'))  # XOR the byte with possible key
                 try:
-                    decoded = xorResult.decode('ascii')  # decode the xorResult byte string back to readable language
-                except UnicodeDecodeError:  # if non readable, skip the key
+                    decoded = xorResult.decode('utf-8')  # decode the xorResult byte string back to readable language
+                except UnicodeDecodeError:  # if non-readable, skip the key
                     continue
-                # ioc = calculateIOC(bins[i])
-                # if (expIOC - 0.0015) < ioc < (expIOC + 0.0015):
-                #     print(f'IOC: {ioc} Bin: {i + 1}, Key: {key.to_bytes(1, "big")}, Decrypted Text: {decoded}\n')
-                #     posKey.append(key)
-                score = englishAnalysis(decoded)  # analyze english probability
-                if score < 6.47:  # lower the score, closer to eng, print out that decrypted message
-                    print(f"Score: {score} Bin {i+1}: Key Part C: {key.to_bytes(1, 'big')}, Decrypted Text: {decoded}\n")
-                    posKey.append(key)  # add byte to pos key if it result is close to english
-            allPosKeys.append(posKey)   # add whole possible key to an array
-        print(f'Possible keys: {allPosKeys}')
-        for aKey in allPosKeys:
-            posResult = xorTwoByteStrings(bytesString, aKey * (len(bytesString) // keyLen + 1))
-            print(f'XOR byteString with {key}')
-            try:
-                decrypted = posResult.decode('UTF-8')
-            except UnicodeDecodeError:  # skip if results in non readable
-                continue
-            print(f'Key: {aKey} Decrypted message: {decrypted}')
+                if englishAnalysis(decoded) < 6.4635:
+                    posKey.append(key)
+                    scores[key] = englishAnalysis(decoded)  # analyze english probability
+            posKeyList.append(posKey)  # add this to the possible key list
+        expIOC = 0.067
+        ioc = []  # list to hold IOC values
+        for keyCombos in itertools.product(*posKeyList):  # go through all possible key combos
+            decryptedMessage = bytearray(b'')  # make empty decrypted message
+            for i in range(len(bytesString)):  # go through entire ciphertext
+                keyByte = keyCombos[i % keyLen]  # get a single key byte in bucket
+                decryptedByte = bytes([bytesString[i] ^ keyByte])  # XOR each individual byte with the single byte from corresponding key byte
+                decryptedMessage.extend(decryptedByte)  # add the decryption to total message
+                decrypted = decryptedMessage.decode('utf-8')  # decrypt it
+            ioc.append((calculateIOC(decrypted), keyCombos, decrypted))  # add tuple with IOC score and keycombo
+        bestCandidates = heapq.nsmallest(2, ioc, key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
+        print(f'bestCandidates: {bestCandidates[0]}\n{bestCandidates[1]}')  # print candidates
 
 
 def main():
