@@ -67,6 +67,13 @@ class testLab1(unittest.TestCase):
 		message = 'GEEKSFORGEEKS'
 		self.assertEqual(message, decryptVigenere(ct, key))
 
+	def testDecryptVigenere2(self):
+		ct = 'ALTHPWLILWEESETCAIII'
+		key = 'HELP'
+		message = 'THISISATESTPLAINTEXT'
+		self.assertEqual(message, decryptVigenere(ct, key))
+
+
 
 if __name__ == '__main__':
 	unittest.main()

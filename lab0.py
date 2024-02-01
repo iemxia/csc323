@@ -155,20 +155,17 @@ def multiByteXor(file_path):
             decryptedMessage = bytearray(b'')  # make empty decrypted message
             for i in range(len(bytesString)):  # go through entire ciphertext
                 keyByte = keyCombos[i % keyLen]  # get a single key byte in bucket
-                decryptedByte = bytes([bytesString[
-                                           i] ^ keyByte])  # XOR each individual byte with the single byte from corresponding key byte
+                decryptedByte = bytes([bytesString[i] ^ keyByte])  # XOR each individual byte with the single byte from corresponding key byte
                 decryptedMessage.extend(decryptedByte)  # add the decryption to total message
                 decrypted = decryptedMessage.decode('utf-8')  # decrypt it
             ioc.append((calculateIOC(decrypted), keyCombos, decrypted))  # add tuple with IOC score and keycombo
-        bestCandidates = heapq.nsmallest(2, ioc,
-                                         key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
-        print(
-            f'Part C bestCandidates:\nKey: {bestCandidates[1][1]} Message:\n{bestCandidates[1][2]}')  # print candidates
+        bestCandidates = heapq.nsmallest(2, ioc, key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
+        print(f'Part C bestCandidates:\nKey: {bestCandidates[1][1]} Message:\n{bestCandidates[1][2]}')  # print candidates
 
 
 def decryptVigenere(ciphertext, key):
     # make sure the key is as long as the cipher text
-    newKey = (key * (len(ciphertext) // len(key))) + key[:len(ciphertext) % len(key)]
+    newKey = (key * (len(ciphertext) // len(key) + 1))[:len(ciphertext)]
     message = ''
     for i in range(len(ciphertext)):
         shift = ord(newKey[i].upper()) - ord('A')
@@ -177,26 +174,28 @@ def decryptVigenere(ciphertext, key):
 
 
 def vigenere(file_path):
+    # try every letter possible in each position and do freq analysis on the decrypted message and see if it
+    # looks like english
     letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    expIOC = 0.068
     with open(file_path, 'r') as file:
-        posKeyList = []
         ct = file.read()
         keyLen = (findKeyLen(ct))[0][0]  # 14
         bins = splitBins(ct, keyLen)  # split into bins, for length 14,
-        # try every letter possible in each position and do freq analysis on the decrypted message and see if it
-        # looks like english
-        for i in range(keyLen):
-            print(f'Trying key length: {i+1}')
-            scores = {}
-            posKey = ''
+        posKey = '' # MOMONEYMOPROBS
+        for i in range(keyLen):  # go through all positions
+            print(f'At position: {i+1}')
+            iocValues = []  # hold IOC scores for each possible letter
             for letter in letters:  # go through all possible letters
-                decryptResult = decryptVigenere(bins[i], letter)  # decrypt the bins with the letter
-                if englishAnalysis(decryptResult) < 6.4635:  # if passes english test
-                    posKey += letter  # add possible letter to the key
-                    scores[posKey] = englishAnalysis(decryptResult)  # set score in dictionary
-            print(posKey)
-            posKeyList.append(posKey)  # add possible key to total list
-
+                decryptResult = decryptVigenere(bins[i], letter)  # decrypt each bin with the corresponding key
+                ioc = calculateIOC(decryptResult)
+                iocValues.append((ioc, letter))  # add the IOC and letter in specific position
+                # something wrong with my IOC value
+            posLetter = min(iocValues, key=lambda x: abs(x[0] - expIOC))[1]  # get letter with best IOC
+            print(iocValues)
+            posKey += posLetter  # add that letter to total possible key
+        message = decryptVigenere(ct, posKey)
+        print(f'Part D\nKey: {posKey}\nMessage: {message}')
 
 
 def main():
