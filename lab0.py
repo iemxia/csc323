@@ -26,7 +26,7 @@ def base64ToBytes(base64String):
 
 
 def bytesToBase64(byte):
-    # convert bytes to basde64-encoded string
+    # convert bytes to base64-encoded string
     encoded = base64.b64encode(byte)  # base 64 encode the bytes
     res = encoded.decode('utf-8')  # decode to get the base64 encoded data using human-readable characters
     return res
@@ -38,7 +38,7 @@ def xorTwoByteStrings(input_str, key):
     new_key = (key * (len(input_str) // len(key) + 1))[:len(input_str)]
     # use zip with for loop to create tuple of bits x and y from input string and key and do the XOR
     result = bytes(x ^ y for x, y in zip(input_str, new_key))
-    # return the XOR'd result byte
+    # return the XORd result byte
     return result
 
 
@@ -89,7 +89,7 @@ def calculateIOC(text):
     return frequency_sum / (n * (n - 1))
 
 
-# function to split the cipher text into appropriate bins of every keyLen'th byte/character
+# function to split the cipher text into appropriate bins of every keyLength byte/character
 def splitBins(ciphertext, keyLen):
     if isinstance(ciphertext, bytes):
         bins = [bytearray(b'') for _ in range(keyLen)]  # create empty bins based on keyLen
@@ -123,13 +123,13 @@ def findKeyLen(byteString):
 
 
 # go through all 256, xor with the ones in other
-# break cyphertext into 5 bins,and then try all 256 keys for each bin, and then see if the plaintext symbols are english
+# break ciphertext into 5 bins,and then try all 256 keys for each bin, and then see if the plaintext symbols are english
 # key length of 5: 5 independent single byte xors
 def multiByteXor(file_path):
     with open(file_path, 'r') as file:  # open file for reading
         ct = file.read()  # read contents of file
         bytesString = base64ToBytes(ct)  # convert the ciphertext back to bytes from bas64
-        keyLen = (findKeyLen(bytesString))[0][0]  # find the possible keyLength that has been XOR'd
+        keyLen = (findKeyLen(bytesString))[0][0]  # find the possible keyLength that has been XORd
         print(f'Key length: {keyLen}')
         bins = splitBins(bytesString, keyLen)  # split into bins
         posKeyList = []
@@ -155,7 +155,7 @@ def multiByteXor(file_path):
                 decryptedByte = bytes([bytesString[i] ^ keyByte])  # XOR each individual byte with the single byte from corresponding key byte
                 decryptedMessage.extend(decryptedByte)  # add the decryption to total message
                 decrypted = decryptedMessage.decode('utf-8')  # decrypt it
-            ioc.append((calculateIOC(decrypted), keyCombos, decrypted))  # add tuple with IOC score and keycombo
+            ioc.append((calculateIOC(decrypted), keyCombos, decrypted))  # add tuple with IOC score and key combination
         bestCandidates = heapq.nsmallest(2, ioc, key=lambda x: abs(x[0] - expIOC))  # sort by 2 closest to the English IOC value
         print(f'Part C bestCandidates:\nKey: {bestCandidates[1][1]} Message:\n{bestCandidates[1][2]}')  # print candidates
 
