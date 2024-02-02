@@ -68,9 +68,9 @@ class testLab1(unittest.TestCase):
 			print(f'Bin {i+1}: {bin}')
 
 	def testDecryptVigenere(self):
-		ct = 'GCYCZFMLYLEIM'
-		key = 'AYUSH'
-		message = 'GEEKSFORGEEKS'
+		ct = 'IVXQNWRYURHKCTHXCIBDLOOSGHAEEOOMWOZ'
+		key = 'POTATO'
+		message = 'THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG'
 		self.assertEqual(message, decryptVigenere(ct, key))
 
 	def testDecryptVigenere2(self):
