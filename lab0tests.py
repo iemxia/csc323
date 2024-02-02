@@ -60,6 +60,12 @@ class testLab1(unittest.TestCase):
 		bins = splitBins(ciphertext, keyLen)
 		for i, bin in enumerate(bins):
 			print(f'Bin {i+1}: {bin}')
+	def testSplitBins2(self):
+		keyLen = 5
+		ciphertext = 'abcdefghijk'
+		bins = splitBins(ciphertext, keyLen)
+		for i, bin in enumerate(bins):
+			print(f'Bin {i+1}: {bin}')
 
 	def testDecryptVigenere(self):
 		ct = 'GCYCZFMLYLEIM'

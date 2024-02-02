@@ -182,20 +182,26 @@ def vigenere(file_path):
         ct = file.read()
         keyLen = (findKeyLen(ct))[0][0]  # 14
         bins = splitBins(ct, keyLen)  # split into bins, for length 14,
-        posKey = '' # MOMONEYMOPROBS
+        posKey = ''  # MOMONEYMOPROBS
         for i in range(keyLen):  # go through all positions
-            print(f'At position: {i+1}')
-            iocValues = []  # hold IOC scores for each possible letter
+            # iocValues = []  # hold IOC scores for each possible letter
+            scores = {}
             for letter in letters:  # go through all possible letters
                 decryptResult = decryptVigenere(bins[i], letter)  # decrypt each bin with the corresponding key
-                ioc = calculateIOC(decryptResult)
-                iocValues.append((ioc, letter))  # add the IOC and letter in specific position
-                # something wrong with my IOC value
-            posLetter = min(iocValues, key=lambda x: abs(x[0] - expIOC))[1]  # get letter with best IOC
-            print(iocValues)
-            posKey += posLetter  # add that letter to total possible key
+                scores[letter] = englishAnalysis(decryptResult)
+                # ioc = calculateIOC(decryptResult)
+                # iocValues.append((ioc, letter))  # add the IOC and letter in specific position
+            # posLetter = min(iocValues, key=lambda x: abs(x[0] - expIOC))[1]  # get letter with best IOC
+                minScore = min(scores.values())  # add that letter to total possible key
+                for skey in scores.keys():
+                    if scores[skey] == minScore:
+                        key = skey
+            posKey += key
+            # print(iocValues)
         message = decryptVigenere(ct, posKey)
         print(f'Part D\nKey: {posKey}\nMessage: {message}')
+
+
 
 
 def main():
