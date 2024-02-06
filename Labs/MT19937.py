@@ -16,9 +16,10 @@ class MT19937:
         #
         self.lower_mask = (1 << self.r) - 1
         self.upper_mask = (1 << self.w) - self.lower_mask
-        # self.c_seed = c_seed.to_bytes(4, 'big')
         self.MT = [0] * MT19937.n
         self.cnt = 0
+        if isinstance(seed, bytes):
+            seed = int.from_bytes(seed, "big")
         self.seed_mt(seed)
 
     def seed_mt(self, seed):
