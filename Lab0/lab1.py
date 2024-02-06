@@ -3,49 +3,44 @@ import random
 import time
 
 
-class MersenneTwister:
-    def __init__(self, c_seed=0, w=32, n=624, m=397, r=31, a=0x9908B0DF, u=11, d=0xFFFFFFFF, s=7, b=0x9D2C5680, t=15,
-                 c=0xEFC60000, l=18, f=1812433253):
-        self.w = w
-        self.n = n
-        self.m = m
-        self.r = r
-        self.a = a
-        self.u = u
-        self.d = d
-        self.s = s
-        self.b = b
-        self.t = t
-        self.c = c
-        self.l = l
-        self.f = f
-        self.index = n + 1
-        self.MT = [0] * n
+class MT19937:
+    w, n = 32, 624
+    f = 1812433253
+    m, r = 397, 31
+    a = 0x9908B0DF
+    d, b, c = 0xFFFFFFFF, 0x9D2C5680, 0xEFC60000
+    u, s, t, l = 11, 7, 15, 18
 
-        self.lower_mask = (1 << r) - 1
-        self.upper_mask = (1 << w) - self.lower_mask
-        self.c_seed = c_seed.to_bytes(4, 'big')
+    def __init__(self, seed=0):
+        # self.index = n + 1
+        # self.MT = [0] * n
+        #
+        self.lower_mask = (1 << self.r) - 1
+        self.upper_mask = (1 << self.w) - self.lower_mask
+        # self.c_seed = c_seed.to_bytes(4, 'big')
+        self.MT = [0] * MT19937.n
+        self.cnt = 0
+        self.seed_mt(seed)
 
     def seed_mt(self, seed):
-        self.index = self.n
+        # self.index = self.n
         self.MT[0] = seed
         for i in range(1, self.n):
-            temp = self.f * (self.MT[i - 1] ^ (self.MT[i - 1] >> (self.w - 2))) + i
-            self.MT[i] = temp & 0xffffffff
+            self.MT[i] = (MT19937.f * (self.MT[i - 1] ^ (self.MT[i - 1] >> (MT19937.w - 2))) + i) & ((1 << MT19937.w) - 1)
 
     def extract_number(self):
-        if self.index >= self.n:
-            if self.index > self.n:
+        if self.cnt >= self.n:
+            if self.cnt > self.n:
                 raise ValueError("Generator was never seeded")
             self.twist()
 
-        y = self.MT[self.index]
+        y = self.MT[self.cnt]
         y ^= (y >> self.u) & self.d
         y ^= (y << self.s) & self.b
         y ^= (y << self.t) & self.c
         y ^= y >> self.l
 
-        self.index += 1
+        self.cnt += 1
         return y & 0xffffffff
 
     def twist(self):
@@ -56,7 +51,7 @@ class MersenneTwister:
             if (x % 2) != 0:
                 xA ^= self.a
             self.MT[i] = self.MT[(i + self.m) % self.n] ^ xA
-        self.index = 0
+        self.cnt = 0
 
     def random(self):
         # return uniform distribution in [0,1)
@@ -69,30 +64,29 @@ class MersenneTwister:
 
 
 def oracle():
-    wait = random.randint(5, 60)
+    wait = random.randint(5, 60)  # random wait time
     print(f"waiting {wait} seconds")
-    time.sleep(wait)
+    time.sleep(wait)  # wait
     seed = int(time.time())  # using current UNIX timestamp
-    mt = MersenneTwister(seed)
-    mt.seed_mt(seed)
+    mt = MT19937(seed)  # seed w/ MersenneTwister
     print("Actual seed: ", seed)
-    wait2 = random.randint(5, 60)
+    wait2 = random.randint(5, 60)  # random wait time
     print(f"waiting {wait2} seconds")
-    time.sleep(wait2)
-    output = (mt.extract_number() & 0xFFFFFFFF).to_bytes(4, 'big')
-    return bytesToBase64(output)
+    time.sleep(wait2)  # wait
+    output = (mt.extract_number() & 0xFFFFFFFF).to_bytes(4, 'big')  # get number
+    return bytesToBase64(output)  # return number base64 encoded
 
 
 def mt19937TimeBreak(outputBase64):
     # decode base64 to bytes
     outputBytes = base64ToBytes(outputBase64)
     outputInt = int.from_bytes(outputBytes, byteorder='big')
-    curTime = int(time.time())
+    curTime = int(time.time())  # get current time
     # go through all possible seeds btwn (current time - max sleep time) and (cur time - min sleep time)
     for seed in range(curTime - 60, curTime - 5):
         # seed with the key
-        mt = MersenneTwister(seed)
-        mt.seed_mt(seed)
+        mt = MT19937(seed)
+        mt.seed_mt(seed)  # get output with every possible seed
         output = mt.extract_number() & 0xFFFFFFFF
         # find matching output and return the seed
         if output == outputInt:
@@ -101,24 +95,24 @@ def mt19937TimeBreak(outputBase64):
 
 
 def main():
-    mt = MersenneTwister(123)
+    print("seed MT w 123")
+    mt = MT19937(123)
     mt.seed_mt(123)
     print(mt.random())
     print(mt.randint(1, 10))
     print(mt.randint(1, 10))
     print(mt.randint(1, 10))
-    print(mt.randint(1, 10))
-
     print("seed w 123 again")
-    mt2 = MersenneTwister(123)
+    mt2 = MT19937(123)
     mt2.seed_mt(123)
     print(mt2.random())
     print(mt2.randint(1, 10))
     print(mt2.randint(1, 10))
     print(mt2.randint(1, 10))
-    print(mt2.randint(1, 10))
+    # call oracle function
     oracleOutput = oracle()
     print(oracleOutput)
+    # guess the seed
     print("Guessed seed: ", mt19937TimeBreak(oracleOutput))
 
 
