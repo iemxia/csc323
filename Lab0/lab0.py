@@ -187,7 +187,7 @@ def vigenere(file_path):
                 scores[letter] = englishAnalysis(decryptResult)  # set letter and score pair in dictionary
                 minScore = min(scores.values())  # get minimum score (most likely english) add that letter to total possible key
                 for skey in scores.keys():  # go through all the letter keys
-                    if scoregs[skey] == minScore:  # find the letter that matches the lower score
+                    if scores[skey] == minScore:  # find the letter that matches the lower score
                         key = skey  # get that letter
             posKey += key  # add that letter to the possible key string
             # print(iocValues)
