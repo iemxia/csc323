@@ -85,15 +85,27 @@ class forgot:
         user = form.d.user
 
         if user in user_dic:
-            token = generate_token()
-            time = datetime.datetime.now() + datetime.timedelta(minutes=TIMEOUT)
-            token_dic[token] = reset_token(user, time)
+            # token = generate_token()
+            # time = datetime.datetime.now() + datetime.timedelta(minutes=TIMEOUT)
+            # token_dic[token] = reset_token(user, time)
 
             if user == "admin":
+                token = generate_token()
+                time = datetime.datetime.now() + datetime.timedelta(minutes=TIMEOUT)
+                token_dic[token] = reset_token(user, time)
                 msg = "Admin emailed reset token."
             else:
+                tokens = []
+                for _ in range(78):
+                    token = generate_token()
+                    tokens.append(token.decode('utf-8'))
+                    time = datetime.datetime.now() + datetime.timedelta(minutes=TIMEOUT)
+                    token_dic[token] = reset_token(user, time)
+                with open("tokens.txt", "a") as file:
+                    for i in range(len(tokens)):
+                        file.write(f"{tokens[i]}\n")
                 # TODO: Email server not working, so I'll just post them to the screen for now.
-                msg = web.ctx.env.get('HTTP_HOST') + "/reset?token=" + token.decode('utf-8')
+                # msg = web.ctx.env.get('HTTP_HOST') + "/reset?token=" + token.decode('utf-8')
                 return render.generic(form, msg, err)
         else:
             err = "User not found."
