@@ -91,6 +91,7 @@ class forgot:
 
             if user == "admin":
                 token = generate_token()
+                print("admin token:", token)
                 time = datetime.datetime.now() + datetime.timedelta(minutes=TIMEOUT)
                 token_dic[token] = reset_token(user, time)
                 msg = "Admin emailed reset token."
