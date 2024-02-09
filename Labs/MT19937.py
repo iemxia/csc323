@@ -1,5 +1,8 @@
 # Mersenne Twister MT 19937
+import time
+
 import lab0
+import base64
 
 
 class MT19937:
@@ -36,7 +39,7 @@ class MT19937:
 			self.twist()
 
 		y = self.MT[self.cnt]
-		y ^= (y >> self.u) & self.d
+		y ^= (y >> self.u)
 		y ^= (y << self.s) & self.b
 		y ^= (y << self.t) & self.c
 		y ^= y >> self.l
@@ -55,41 +58,36 @@ class MT19937:
 		self.cnt = 0
 
 
-def get_bit(x, i):
-	return x & (1 << (MT19937.w - i - 1))
+rshift = lambda val, n: (val % 0x100000000) >> n
 
 
-def reverse_bits(x):
-	rev = 0
-	for i in range(MT19937.w):
-		rev = (rev << 1)
-		if x > 0:
-			if x & 1 == 1:
-				rev = (rev ^ 1)
-			x = (x >> 1)
-	return rev
+def inv_right(y, shiftlen):
+	i = 0
+	res = 0
+	while i * shiftlen < 32:
+		chunk = y & rshift(-1 << (32 - shiftlen), shiftlen * i)
+		y ^= rshift(chunk, shiftlen)
+		res |= chunk
+		i += 1
+	return res
 
 
-def inv_left(y, a, b):
-	return reverse_bits(inv_right(reverse_bits(y), a, reverse_bits(b)))
+def inv_left(y, shiftlen, mask):
+	i = 0
+	res = 0
+	while i * shiftlen < 32:
+		chunk = y & rshift(-1, 32 - shiftlen) << (shiftlen * i)
+		y ^= (chunk << shiftlen) & mask
+		res |= chunk
+		i += 1
+	return res
 
 
-def inv_right(y, a, b):
-	x = 0
-	for i in range(MT19937.w):
-		if i < a:
-			x |= get_bit(y, i)
-		else:
-			x |= (get_bit(y, i) ^ ((get_bit(x, i - a) >> a) & get_bit(b, i)))
-	return x
-
-
-def unmix(y):
-	x = y
-	x = inv_right(x, MT19937.l, ((1 << MT19937.w) - 1))
+def unmix(x):
+	x = inv_right(x, MT19937.l)
 	x = inv_left(x, MT19937.t, MT19937.c)
 	x = inv_left(x, MT19937.s, MT19937.b)
-	x = inv_right(x, MT19937.u, MT19937.d)
+	x = inv_right(x, MT19937.u)
 	return x
 
 
@@ -101,6 +99,7 @@ def compare_RNGs(r1, r2, lim=1000):
 	print("From inspecting the first ", lim, " numbers, the two RNGs are the same.")
 
 
+# function to take in file of tokens, decode them and split them, returns list of all tokens
 def decodeTokens(file_path):
 	alltokens = []
 	with open("tokens.txt", "r") as file:
@@ -110,18 +109,49 @@ def decodeTokens(file_path):
 			indivTokens = decodedToken8.split(":")  # split by colons
 			for indivToken in indivTokens:
 				alltokens.append(int(indivToken))
-		print(alltokens)
+		return alltokens
+
+
+def clone(MT):
+	cloneMT = MT19937(0)
+	for i in range(624):
+		cloneMT.MT[i] = unmix(MT.extract_number())
+	cloneMT.twist()
+	return cloneMT
+
+
+def compareMT(mt1, mt2, lim=624):
+	for i in range(lim):
+		if (mt1.extract_number() != mt2.extract_number()):
+			print("Not the same, stopped at index ", i)
+			return
+	print("From inspecting the first ", lim, " numbers, the two RNGs are the same.")
+
+
+def generate_next_token(MT):
+	# Generate a 256-bit random number as our reset tokwn
+	# by concatentating 8, 32-bit integers with colons
+	token = str(MT.extract_number())
+	for i in range(7):
+		token += ":" + str(MT.extract_number())
+	return (base64.b64encode(token.encode('utf-8'))).decode()
 
 
 def main():
-	# rng1 = MT19937(0)
-	# rng2 = MT19937(1)
-	# for i in range(MT19937.n):
-	#     rng2.MT[i] = unmix(rng1.extract_number())
-	# rng2.twist()
-	# compare_RNGs(rng1, rng2)
-	decodeTokens("tokens.txt")
-
-
+	# testing
+	# testMT = MT19937(100)
+	# cloneMT = clone(testMT)
+	# compareMT(testMT, cloneMT)
+	tokens = decodeTokens("tokens.txt")
+	serverMT = MT19937(0)  # create MT object for server
+	serverMT.MT = tokens
+	cloneServer = clone(serverMT)
+	nextTokens = 2
+	predicted = []
+	for i in range(nextTokens):
+		predicted.append(generate_next_token(cloneServer))
+	print(predicted)
+	# reset string:
+	# localhost:8080/reset?token=
 if __name__ == '__main__':
 	main()

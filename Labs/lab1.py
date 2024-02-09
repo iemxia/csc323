@@ -35,7 +35,7 @@ class MT19937:
             self.twist()
 
         y = self.MT[self.cnt]
-        y ^= (y >> self.u) & self.d
+        y ^= (y >> self.u)
         y ^= (y << self.s) & self.b
         y ^= (y << self.t) & self.c
         y ^= y >> self.l
