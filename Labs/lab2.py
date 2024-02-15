@@ -5,6 +5,7 @@
 from Crypto.Cipher import AES
 import base64
 
+
 def pad(msg, block_size):
     pad_len = block_size - (len(msg) % block_size)  # get how many padding bytes we'll need
     return msg + bytes([pad_len] * pad_len)  # add that value as padding to end of msg
@@ -48,7 +49,7 @@ def ecb_decrypt(key, ciphertext, pad_scheme):
 def ansi_x_unpad(msg, block_size):
     pad_len = msg[-1]
     if pad_len == 0 or pad_len > block_size:
-        raise ValueErorr("Invalid Padding")
+        raise ValueError("Invalid Padding")
     for i in range(1, pad_len):
         if msg[-i -1] != 0:
             raise ValueError("Invalid padding")
@@ -89,10 +90,8 @@ def main():
         if count < min_count:  # find ciphertext w/ lowest score, meaning least unique blocks and most repetitive blocks
             min_count = count
             best_cipher = idx
-    print(ciphertext_list[idx])
-    found = lines[idx].rstrip("\n")  # strip off new line char
+    found = lines[best_cipher].rstrip("\n")  # strip off new line char
     found = bytes.fromhex(found)  # decode from hex
-    found = ecb_decrypt(key, found, "pkcs7")
     with open("ecb_image.bmp", "wb") as file_out:
         file_out.write(found)
 
