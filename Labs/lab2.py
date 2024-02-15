@@ -56,6 +56,15 @@ def ansi_x_unpad(msg, block_size):
     return unpadded
 
 
+def find_ecb(cipher):
+    # detect ecb by looking at the repetition of blocks
+    blocks = []
+    for i in range(54, len(cipher), 16):
+        blocks.append(cipher[i:i+16])
+    # find ratio of distinct blocks to total blocks
+    return len(set(blocks)) / len(blocks)
+
+
 def main():
     with open("Lab2.TaskII.A.txt", "r") as file:
         base64_ciphertext = file.read()
@@ -64,7 +73,28 @@ def main():
     key = b'CALIFORNIA LOVE!'
     plaintext = ecb_decrypt(key, ciphertext, "pkcs7")
     plaintext_str = plaintext.decode('ascii')
-    print("Decrypted plaintext: ", plaintext_str)
+    print("Task 2 A, Decrypted plaintext: ", plaintext_str)
+
+    # detecting ECB
+    # question: is the bitmap image padded w/ pkcs7? do we need what the key is to decrypt it with?
+    with open("Lab2.TaskII.B.txt", "r") as file2:
+        lines = file2.readlines()
+        # decode from hex
+        ciphertext_list = list(map(bytes.fromhex, lines))
+
+    min_count = float("inf")  # to compare scores to, want the lowest
+    best_cipher = 0
+    for idx, ciphertext in enumerate(ciphertext_list):
+        count = find_ecb(ciphertext)
+        if count < min_count:  # find ciphertext w/ lowest score, meaning least unique blocks and most repetitive blocks
+            min_count = count
+            best_cipher = idx
+    print(ciphertext_list[idx])
+    found = lines[idx].rstrip("\n")  # strip off new line char
+    found = bytes.fromhex(found)  # decode from hex
+    found = ecb_decrypt(key, found, "pkcs7")
+    with open("ecb_image.bmp", "wb") as file_out:
+        file_out.write(found)
 
 
 if __name__ == "__main__":
