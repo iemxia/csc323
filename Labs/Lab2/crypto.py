@@ -47,3 +47,4 @@ def verify_crypto_cookie(enc_cookie, key):
 	query = urllib.parse.parse_qs(cookie)
 
 	return query["user"][0], query["uid"][0], query["role"][0]
+

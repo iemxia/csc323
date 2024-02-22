@@ -49,17 +49,6 @@ def ecb_decrypt(key, ciphertext, pad_scheme):
     return plaintext
 
 
-# def ansi_x_unpad(msg, block_size):
-#     pad_len = msg[-1]
-#     if pad_len == 0 or pad_len > block_size:
-#         raise ValueError("Invalid Padding")
-#     for i in range(1, pad_len):
-#         if msg[-i -1] != 0:
-#             raise ValueError("Invalid padding")
-#     unpadded = msg[:-pad_len]
-#     return unpadded
-
-
 def find_ecb(cipher):
     # detect ecb by looking at the repetition of blocks
     blocks = []
@@ -111,8 +100,11 @@ def main():
 # 2) create second user where admin starts the block "[admin&uid=#&]role
 # 3) create user with string "admin" in it and padding bytes as the username
 # cookie structure: user=USERNAME&uid=UID&role=ROLE
+# end cookie that we want: user=admin&uid=1&role=admin
 # for &uid ... block
 # 1) [user=adminaaaaaaaaaa&uid=1&role=]admin
+# 2) user='56789ABCDEF' + ansix923_pad('admin', 16)
+# original string is padded using ANSI X923 and THEN encrypted using AES-128-ECB mode under a randomly generated key
 
 if __name__ == "__main__":
     main()
