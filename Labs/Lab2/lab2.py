@@ -108,17 +108,21 @@ def attack():
 		"password": '123',
 		"Register": ''
 	}
+	# register user
 	s.post("http://localhost:8080/register", data=first_data)
 	first_data = {
 		"user": 'adminaaaaaaaaaa',
 		"password": '123',
 		"Login": ''
 	}
-	r = s.post("http://localhost:8080", data=first_data)
+	# login as user
+	s.post("http://localhost:8080", data=first_data)
+	# get cookie
 	cookie = str(s.cookies)
+	# extract cookie from whole  cookie string
 	cookie = cut_cookie(cookie)
-	first_block = bytes.fromhex(cookie)  # decode from hex
-	# first_block = ecb_decrypt(server2.master_key, first_block, "ansix923")  # decrypt
+	# decode from hex
+	first_block = bytes.fromhex(cookie)
 	first_block = first_block[0:32]  # cut off last block, so now it ends with role=
 	# second user to get the middle block to be 'admin' with correct padding
 	s2 = requests.Session()
@@ -127,28 +131,29 @@ def attack():
 		"password": '123',
 		"Register": ''
 	}
+	# register second user
 	s2.post("http://localhost:8080/register", data=second_data)
 	second_data = {
 		"user": '56789ABCDEF' + crypto.ansix923_pad('admin', 16),
 		"password": '123',
 		"Login": ''
 	}
-	r = s2.post("http://localhost:8080", data=second_data)
-	print(r.content)
+	# login as second user
+	s2.post("http://localhost:8080", data=second_data)
+	# get cookie
 	cookie2 = str(s2.cookies)
+	# extract hex cookie from whole cookie string
 	cookie2 = cut_cookie(cookie2)
 	second_block = bytes.fromhex(cookie2)  # decode from hex
-	# second_block = ecb_decrypt(server2.master_key, second_block, "ansix923")  # decrypt
 	second_block = second_block[16:32]  # isolate second block
-	#print(f"last block: {second_block}, len: {len(second_block)}")
 	manip_cookie = b""
-	manip_cookie += first_block
-	manip_cookie += second_block  # put them together
+	manip_cookie += first_block + second_block  # put them together
 	manip_cookie = manip_cookie.hex()  # hex encode the cookie
 	print("plaintext manipulated cookie: ", manip_cookie, len(manip_cookie))
 	final_cookie = {
 		"auth_token": manip_cookie
 	}
+	# submit my manipulated cookie
 	r = s2.get("http://localhost:8080/home", cookies=final_cookie)
 	print(r.content)
 
@@ -182,16 +187,6 @@ def main():
 	with open("ecb_image.bmp", "wb") as file_out:
 		file_out.write(found)
 
-
-# 1) make username where role= ends the block, and next block starts with the user-type
-# 2) create second user where admin starts the block "[admin&uid=#&]role
-# 3) create user with string "admin" in it and padding bytes as the username
-# cookie structure: user=USERNAME&uid=UID&role=ROLE
-# end cookie that we want: user=admin&uid=1&role=admin
-# for &uid ... block
-# 1) [user=adminaaaaaaaaaa&uid=1&role=]admin
-# 2) user='56789ABCDEF' + ansix923_pad('admin', 16)
-# original string is padded using ANSI X923 and THEN encrypted using AES-128-ECB mode under a randomly generated key
 
 if __name__ == "__main__":
 	main()
