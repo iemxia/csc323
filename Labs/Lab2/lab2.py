@@ -5,6 +5,8 @@
 from Crypto.Cipher import AES
 import crypto
 import base64
+import hashlib
+import web
 
 
 def pad(msg, block_size):
@@ -67,6 +69,14 @@ def find_ecb(cipher):
     return len(set(blocks)) / len(blocks)
 
 
+def create_admin_plaintext():
+    manipulated_plaintext = b"user=admin&uid=0&role=admin"
+    block_size = AES.block_size
+    # pad using ANSIx923
+    padded = crypto.ansix923_pad(manipulated_plaintext, block_size)
+    return padded
+
+
 def main():
     with open("Lab2.TaskII.A.txt", "r") as file:
         base64_ciphertext = file.read()
@@ -96,6 +106,13 @@ def main():
     with open("ecb_image.bmp", "wb") as file_out:
         file_out.write(found)
 
+
+# 1) make username where role= ends the block, and next block starts with the user-type
+# 2) create second user where admin starts the block "[admin&uid=#&]role
+# 3) create user with string "admin" in it and padding bytes as the username
+# cookie structure: user=USERNAME&uid=UID&role=ROLE
+# for &uid ... block
+# 1) [user=adminaaaaaaaaaa&uid=1&role=]admin
 
 if __name__ == "__main__":
     main()
