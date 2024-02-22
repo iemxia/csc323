@@ -147,7 +147,7 @@ def attack():
 	manip_cookie = manip_cookie.hex()  # hex encode the cookie
 	print("plaintext manipulated cookie: ", manip_cookie, len(manip_cookie))
 	final_cookie = {
-		"auth-token": manip_cookie
+		"auth_token": manip_cookie
 	}
 	r = s2.get("http://localhost:8080/home", cookies=final_cookie)
 	print(r.content)
