@@ -5,10 +5,7 @@
 from Crypto.Cipher import AES
 import crypto
 import base64
-import hashlib
-import web
 import requests
-import server2
 import re
 
 STR_COOKIE_NAME = "auth_token"
@@ -156,6 +153,19 @@ def attack():
 	# submit my manipulated cookie
 	r = s2.get("http://localhost:8080/home", cookies=final_cookie)
 	print(r.content)
+
+
+def cbc_encrypt(plaintext, key, iv):
+	plaintext = pad(plaintext, AES.block_size)  # pad msg to right size
+	# encrypt
+	aes_obj = AES.new(key, AES.MODE_ECB)
+	
+
+def cbc_decrypt(ciphertext, key, iv):
+	if len(ciphertext) % AES.block_size != 0:  # not a multiple of the block size
+		raise ValueError("Must be multiple of block size")
+	# decrypt
+	# unpad, throw error if unpadding doesn't work
 
 
 def main():
