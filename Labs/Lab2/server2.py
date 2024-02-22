@@ -2,8 +2,6 @@ import web
 from Crypto.Cipher import AES
 from web import form
 import crypto, hashlib, os, lab2
-import threading
-import requests
 
 STR_COOKIE_NAME = "auth_token"
 
@@ -142,12 +140,12 @@ def verify_cookie():
 		return "", "", ""
 
 
-# function to create a userwith specific username
-def create_user(user, password):
-	url = "http://localhost:8080/register"
-	payload = {'Register': "", 'user': user, 'password': password}
-	response = requests.post(url, data=payload)
-	return response.text
+# # function to create a userwith specific username
+# def create_user(user, password):
+# 	url = "http://localhost:8080/register"
+# 	payload = {'Register': "", 'user': user, 'password': password}
+# 	response = requests.post(url, data=payload)
+# 	return response.text
 
 
 # function to get cookie from specific user
@@ -159,33 +157,8 @@ def create_user(user, password):
 # 	return cookie
 
 
-def attack():
-	first_user = 'adminaaaaaaaaaa'  # username long enough so block ends with role=, to append another block to
-	second_user = '56789ABCDEF' + crypto.ansix923_pad('admin', 16)  # second user to get the middle block to be 'admin' with correct padding
-	create_user(first_user, '123')  # create user
-	first_block = web.cookies().get(STR_COOKIE_NAME)  # get the cookie
-	print(first_block)
-	first_block = bytes.fromhex(first_block)  # decode from hex
-	first_block = lab2.ecb_decrypt(master_key, first_block, "ansix923")# decrypt
-	print("first cookie decrypted: ", first_block)
-	first_block = first_block[:-16]# cut off last block, so now it ends with role=
-	print("first block: ", first_block)
-	create_user(second_user, '123')  # create second user
-	second_block = web.cookies().get(STR_COOKIE_NAME)  # get second cookie
-	second_block = bytes.fromhex(second_block)  # decode from hex
-	second_block = lab2.ecb_decrypt(master_key, second_block, "ansix923")# decrypt
-	print("cookie decrypted: ", second_block)
-	second_block = last_block[16:32]  # isolate second block
-	print("last block: ", second_block)
-	manip_cookie = first_block + second_block  # put them together
-	print("plaintext manipulated cookie: ", manip_cookie)
-
-
-
 if __name__ == "__main__":
-	# app = web.application(urls, globals())
-	# app.run()
+	app = web.application(urls, globals())
+	app.run()
 	# attack()
-	web_app_thread = threading.Thread(target=web.application(urls, globals()).run)
-	web_app_thread.start()
-	attack()
+

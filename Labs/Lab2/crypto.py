@@ -43,7 +43,9 @@ def create_crypto_cookie(user, userid, role, key):
 def verify_crypto_cookie(enc_cookie, key):
 	aes_obj = AES.new(bytes(key), AES.MODE_ECB)
 	cookie_pad = aes_obj.decrypt(enc_cookie)
+	print("decyrpted:", cookie_pad)
 	cookie = ansix923_strip(cookie_pad, AES.block_size)
+	print("stripped:", cookie)
 	query = urllib.parse.parse_qs(cookie)
 
 	return query["user"][0], query["uid"][0], query["role"][0]
