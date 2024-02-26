@@ -155,17 +155,51 @@ def attack():
 	print(r.content)
 
 
+def xor_bytes(a, b):
+	return bytes(x ^ y for x,y in zip(a, b))
+
+
 def cbc_encrypt(plaintext, key, iv):
 	plaintext = pad(plaintext, AES.block_size)  # pad msg to right size
 	# encrypt
-	aes_obj = AES.new(key, AES.MODE_ECB)
-	
+	cipher_obj = AES.new(key, AES.MODE_ECB)
+	# loop blocks to create cipher
+	prev_iv = iv
+	cipher = bytes()
+	for i in range(0, len(plaintext), AES.block_size):
+		# get the block and then XOR with last ciphertext block
+		extr = plaintext[i:i+AES.block_size]
+		extr = xor_bytes(extr, prev_iv)
+		# encrypt it
+		encrypted = cipher_obj.encrypt(extr)
+		# add to cipher text
+		cipher += encrypted
+		# update the prev block
+		prev_iv = encrypted
+	return cipher
+
 
 def cbc_decrypt(ciphertext, key, iv):
 	if len(ciphertext) % AES.block_size != 0:  # not a multiple of the block size
 		raise ValueError("Must be multiple of block size")
 	# decrypt
-	# unpad, throw error if unpadding doesn't work
+	cipher_obj = AES.new(key, AES.MODE_ECB)
+	# loop blocks
+	prev_iv = iv
+	plaintext = bytes()
+	for i in range(0, len(ciphertext), AES.block_size):
+		# extract block, decrypt then XOR with last block
+		extr = ciphertext[i:i+AES.block_size]
+		plaintext_block = cipher_obj.decrypt(extr)
+		plaintext_block = xor_bytes(plaintext_block, prev_iv)
+		plaintext += plaintext_block
+		# update prev block
+		prev_iv = extr
+	try:
+		unpadded = unpad(plaintext, AES.block_size)
+	except ValueError as e:
+		raise ValueError("Unpadding error: " + str(e))
+	return unpadded
 
 
 def main():
