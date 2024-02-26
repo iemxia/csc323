@@ -7,6 +7,8 @@ import crypto
 import base64
 import requests
 import re
+import codecs
+import difflib
 
 STR_COOKIE_NAME = "auth_token"
 
@@ -156,7 +158,7 @@ def attack():
 
 
 def xor_bytes(a, b):
-	return bytes(x ^ y for x,y in zip(a, b))
+	return bytes(x ^ y for x, y in zip(a, b))
 
 
 def cbc_encrypt(plaintext, key, iv):
@@ -168,7 +170,7 @@ def cbc_encrypt(plaintext, key, iv):
 	cipher = bytes()
 	for i in range(0, len(plaintext), AES.block_size):
 		# get the block and then XOR with last ciphertext block
-		extr = plaintext[i:i+AES.block_size]
+		extr = plaintext[i:i + AES.block_size]
 		extr = xor_bytes(extr, prev_iv)
 		# encrypt it
 		encrypted = cipher_obj.encrypt(extr)
@@ -189,7 +191,7 @@ def cbc_decrypt(ciphertext, key, iv):
 	plaintext = bytes()
 	for i in range(0, len(ciphertext), AES.block_size):
 		# extract block, decrypt then XOR with last block
-		extr = ciphertext[i:i+AES.block_size]
+		extr = ciphertext[i:i + AES.block_size]
 		plaintext_block = cipher_obj.decrypt(extr)
 		plaintext_block = xor_bytes(plaintext_block, prev_iv)
 		plaintext += plaintext_block
@@ -202,7 +204,51 @@ def cbc_decrypt(ciphertext, key, iv):
 	return unpadded
 
 
+def compare_files(file1, file2):
+	with open(file1, 'r') as file_1, open(file2, 'r') as file_2:
+		for line1, line2 in zip(file_1, file_2):
+			if line1 != line2:
+				return False
+	return True
+
+
+def bytesToBase64(byte):
+    # convert bytes to base64-encoded string
+    encoded = base64.b64encode(byte)  # base 64 encode the bytes
+    res = encoded.decode('utf-8')  # decode to get the base64 encoded data using human-readable characters
+    return res
+
+
+def task3_cbc_mode():
+	print("*" * 32)
+	print("Task 3 CBC Mode Decryption\n")
+	with open("Lab2.TaskIII.A.txt", 'r') as file:
+		ciphertext = base64.b64decode(file.read())
+	key = b"MIND ON MY MONEY"
+	iv = b"MONEY ON MY MIND"
+	msg = cbc_decrypt(ciphertext, key, iv)
+	print("Msg: ", msg)
+	print("*" * 32)
+	print("Task 3 CBC Mode Encryption\n")
+	ciphertext = cbc_encrypt(msg, key, iv)
+	# convert to base64
+	ciphertext = bytesToBase64(ciphertext)
+	with open("CBCEncrypt.txt", "w") as file2:
+		file2.write(ciphertext)
+	print("Comparing two ciphertext files")
+	with open("Lab2.TaskIII.A.txt", "r") as f:
+		content = f.read().replace("\n", "")  # replace newline character with empty string
+	with open("Lab2.TaskIIIOneline.txt", "w") as f:
+		f.write(content)
+	if compare_files("Lab2.TaskIIIOneline.txt", "CBCEncrypt.txt"):
+		print("Files are identical")
+	else:
+		print("Files are different")
+
+
 def main():
+	print("*" * 32)
+	print("Lab 2 Task II A ECB Decryption")
 	with open("Lab2.TaskII.A.txt", "r") as file:
 		base64_ciphertext = file.read()
 
@@ -211,7 +257,8 @@ def main():
 	plaintext = ecb_decrypt(key, ciphertext, "pkcs7")
 	plaintext_str = plaintext.decode('ascii')
 	print("Task 2 A, Decrypted plaintext: ", plaintext_str)
-
+	print("*" * 32)
+	print("Lab 2 Detect ECB")
 	# detecting ECB
 	# question: is the bitmap image padded w/ pkcs7? do we need what the key is to decrypt it with?
 	with open("Lab2.TaskII.B.txt", "r") as file2:
@@ -230,6 +277,7 @@ def main():
 	found = bytes.fromhex(found)  # decode from hex
 	with open("ecb_image.bmp", "wb") as file_out:
 		file_out.write(found)
+	task3_cbc_mode()
 
 
 if __name__ == "__main__":
