@@ -128,6 +128,7 @@ def create_cookie(user, uid, role):
 
 def verify_cookie():
 	cookie = web.cookies().get(STR_COOKIE_NAME)
+
 	if cookie == None:
 		return "", "", ""
 	try:

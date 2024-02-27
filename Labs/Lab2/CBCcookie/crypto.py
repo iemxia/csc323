@@ -45,6 +45,7 @@ def verify_crypto_cookie(enc_cookie, key):
 	iv = enc_cookie[:AES.block_size]
 	aes_obj = AES.new(bytes(key), AES.MODE_CBC, iv)
 	cookie_pad = aes_obj.decrypt(enc_cookie[AES.block_size:])
+	print(cookie_pad)
 	cookie = ansix923_strip(cookie_pad, AES.block_size)
 	query = urllib.parse.parse_qs(cookie.decode("latin-1"))
 
