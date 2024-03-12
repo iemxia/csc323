@@ -38,7 +38,7 @@ class MyTestCase(unittest.TestCase):
 		self.assertEqual(R, Point(9, 7))
 
 	def test_ec_rand(self):
-		curve = Curve(a=3, b=8, field=13)
+		curve = Curve(a=4, b=6, field=97)
 		R = gen_random_point(curve)
 		print(R)
 

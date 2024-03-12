@@ -80,12 +80,11 @@ def tonelli_shanks(n, p):
             if pow(c, 2 ** i, p) == 1:
                 break
 
-        b = pow(g, 2 ** (m - i - 1), p)
-        r = pow((r * b), 1, p)
-        c = pow((t * pow(r, 2, p)), 1, p)
-        t = pow(r, 2, p)
+        b = pow(g, 2 ** (m - i - 1), int(p))
+        r = pow((r * b), 1, int(p))
+        c = pow((t * pow(r, 2, p)), 1, int(p))
+        t = pow(r, 2, int(p))
         m = i
-
     return r
 
 
@@ -96,3 +95,17 @@ def gen_random_point(curve):
         y = tonelli_shanks(n, curve.field)
         if y is not None:
             return Point(x, y)
+
+
+def find_order(curve, curve_order, desired_order):
+    while True:
+        # get random point
+        # Multiply the random point by curve order / desired order
+        # make sure x,y != 0, and it is not the origin
+        # check that that point * desired order is the Origin
+        point = gen_random_point(curve)
+        point2 = ecc_multiply(point, curve_order / desired_order)
+        if point2.x != 0 and point2.y != 0 and point2 != "Origin" and (ecc_multiply(point2, desired_order) == "Origin"):
+            return point2
+
+
