@@ -23,6 +23,20 @@ class MyTestCase(unittest.TestCase):
 		R = ecc_add(P, Q, curve)
 		self.assertEqual(R, "Origin")
 
+	def test_ec_mul(self):
+		curve = Curve(a=3, b=8, field=13)
+		P = Point(12, 11)
+		scalar = 3
+		R = ecc_multiply(P, scalar, curve)
+		self.assertEqual(R, Point(9, 6))
+
+	def test_ec_mul2(self):
+		curve = Curve(a=3, b=8, field=13)
+		P = Point(9, 6)
+		scalar = 5
+		R = ecc_multiply(P, scalar, curve)
+		self.assertEqual(R, Point(9, 7))
+
 
 if __name__ == '__main__':
 	unittest.main()

@@ -40,3 +40,12 @@ def ecc_add(P, Q, curve):
         res = Point(x, y)
     return res
 
+
+def ecc_multiply(P, scalar, curve):
+    R = O
+    while scalar > 0:
+        if pow(int(scalar), 1, 2) == 1:
+            R = ecc_add(R, P, curve)
+        P = ecc_add(P, P, curve)
+        scalar = scalar / 2
+    return R
