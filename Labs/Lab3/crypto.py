@@ -89,7 +89,7 @@ bp_order = 29246302889428143187362802287225875743
 
 
 def gen_keys() -> (int, EccPoint):
-    secret = pow(int.from_bytes(os.urandom(20)), 1, bp_order)
+    secret = pow(int.from_bytes(os.urandom(20), "little"), 1, bp_order)
     public = base_point * secret
     return (secret, public)
 
