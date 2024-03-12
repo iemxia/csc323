@@ -37,6 +37,11 @@ class MyTestCase(unittest.TestCase):
 		R = ecc_multiply(P, scalar, curve)
 		self.assertEqual(R, Point(9, 7))
 
+	def test_ec_rand(self):
+		curve = Curve(a=3, b=8, field=13)
+		R = gen_random_point(curve)
+		print(R)
+
 
 if __name__ == '__main__':
 	unittest.main()
