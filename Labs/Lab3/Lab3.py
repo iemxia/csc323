@@ -56,11 +56,10 @@ def ecc_add(P, Q, curve):
 
 def ecc_multiply(P, scalar, curve):
 	R = O
-	while scalar > 0:
-		if pow(int(scalar), 1, 2) == 1:
+	for b in crypto.bits(scalar):
+		if b:
 			R = ecc_add(R, P, curve)
 		P = ecc_add(P, P, curve)
-		scalar = scalar / 2
 	return R
 
 
