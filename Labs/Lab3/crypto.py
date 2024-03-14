@@ -106,7 +106,10 @@ def calculate_hmac(msg: str, key: EccPoint) -> HMAC.HMAC:
 
 def verify_msg(msg: str, hmac: str, pub_key: EccPoint, s_key: int) -> bool:
     shared_key = get_shared_key(pub_key, s_key)
+    print("shared key: ", shared_key)
+    print("Verifying msg: ", msg)
     h = calculate_hmac(msg, shared_key)
+    print("Expected hmac: ", h.hexdigest())
     try:
         h.hexverify(hmac)
         return True

@@ -1,6 +1,7 @@
 import random
 import crypto
 import requests
+import os
 from collections import namedtuple
 from dataclasses import dataclass
 from Crypto.Hash import HMAC, SHA256
@@ -133,7 +134,8 @@ chat_bp = Point(182, 85518893674295321206118380980485522083)
 # Base Point Order
 # 29246302889428143187362802287225875743
 chat_bp_order = 29246302889428143187362802287225875743
-my_secret_key = random.randint(1, chat_bp_order - 1)  # generate secret key
+my_secret_key = pow(int.from_bytes(os.urandom(20), "little"), 1, chat_bp_order)
+print("My secret key: ", my_secret_key)
 my_public_key = ecc_multiply(chat_bp, my_secret_key, chat_curve)
 
 
@@ -148,8 +150,10 @@ def send_msg(rec_pkey):
 	print("My public key: ", my_public_key)
 	msg = "Hi"
 	shared_key = ecc_multiply(rec_pkey, my_secret_key, chat_curve)
+	print("calculated shared key: ", shared_key)
 	# binary_shared_key = str.encode(shared_key_string)
 	hmac = calculate_hmac(msg, shared_key)
+	print("My HMAC: ", hmac.hexdigest())
 	url = "http://localhost:8080/submit"
 	form_data = {
 		'recipient': 'Bob',  #
