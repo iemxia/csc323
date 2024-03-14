@@ -90,6 +90,24 @@ def add_coin_base_tx(tx):
     tx['output'].append(coin_base_tx)
 
 
+def verify_block(block):
+    # verifying block contains all required fields
+    required_fields = ['type', 'id', 'nonce', 'pow', 'prev', 'tx']
+    for field in required_fields:
+        if field not in block:
+            print(f"Error: Missing field '{field}' in the block")
+            return False
+    # type field is the value BLOCK
+    if block['type'] != BLOCK:
+        print("Error: Invalid block type")
+        return False
+    # block ID computed correctly
+    exp_id = hashlib.sha256(json.dumps(block['tx'], sort_keys=True).encode('utf8')).hexdigest()
+    if block['id'] != exp_id:
+        print("Error: Incorrect block ID")
+        return False
+
+
 def verify_transaction(tx, blockchain):
     if confirm_utx_format(tx):  # is correct format
         # Check if transaction is of correct type
@@ -120,7 +138,7 @@ def verify_transaction(tx, blockchain):
         input_tx_sig = tx['sig']
         vk_input_tx_pub_key = VerifyingKey.from_string(bytes.fromhex(input_tx_pub_key))
         try:
-            assert vk_input_tx_pub_key.verify(bytes.fromhex(input_tx_sig), bytes(str(input_tx['output'])))
+            assert vk_input_tx_pub_key.verify(bytes.fromhex(input_tx_sig), json.dumps(tx['input'], sort_keys=True).encode('utf8'))
         except Exception as e:
             print("Error verifying transaction signature:", e)
             return False
@@ -199,7 +217,6 @@ def mine_transaction(utx, prev):
     return pow, nonce
 
 
-
 def main():
     if len(sys.argv) < 3:
         print("Usage: python3", sys.argv[0], "CLIENTNAME PORT")
@@ -275,7 +292,7 @@ def main():
                     "prev": prev_id,
                     "tx": tx
                 }
-                
+
 
         # as well as any other additional features
 
