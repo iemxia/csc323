@@ -67,11 +67,11 @@ class ZachCoinClient(Node):
 
         if data != None:
             if 'type' in data:
-                if data['type'] == self.TRANSACTION:
+                if data['type'] == TRANSACTION:
                     self.utx.append(data)
-                elif data['type'] == self.BLOCKCHAIN:
+                elif data['type'] == BLOCKCHAIN:
                     self.blockchain = data['blockchain']
-                elif data['type'] == self.UTXPOOL:
+                elif data['type'] == UTXPOOL:
                     self.utx = data['utxpool']
             # TODO: Validate blocks
 
@@ -213,7 +213,6 @@ def mine_transaction(utx, prev):
         nonce = Random.new().read(AES.block_size).hex()
     pow = hashlib.sha256(
         json.dumps(utx, sort_keys=True).encode('utf8') + prev.encode('utf-8') + nonce.encode('utf-8')).hexdigest()
-
     return pow, nonce
 
 
@@ -292,7 +291,6 @@ def main():
                     "prev": prev_id,
                     "tx": tx
                 }
-
 
         # as well as any other additional features
 
