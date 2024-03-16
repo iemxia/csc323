@@ -63,16 +63,18 @@ class ZachCoinClient(Node):
 
     def node_message(self, connected_node, data):
         # print("node_message from " + connected_node.id + ": " + json.dumps(data,indent=2))
-        print("node_message from " + connected_node.id)
+        print("node_message from " + connected_node.id + "type: " + str(data['type']))
 
         if data != None:
             if 'type' in data:
-                if data['type'] == TRANSACTION:
+                if data['type'] == TRANSACTION: #1
                     self.utx.append(data)
-                elif data['type'] == BLOCKCHAIN:
+                elif data['type'] == BLOCKCHAIN: #2
                     self.blockchain = data['blockchain']
-                elif data['type'] == UTXPOOL:
+                elif data['type'] == UTXPOOL:  #3
                     self.utx = data['utxpool']
+                elif data['type'] == BLOCK:  #0
+                    print("user submitted block")
             # TODO: Validate blocks
 
     def node_disconnect_with_outbound_node(self, connected_node):
@@ -90,7 +92,7 @@ def add_coin_base_tx(tx):
     tx['output'].append(coin_base_tx)
 
 
-def verify_block(block):
+def verify_block(block, client):
     # verifying block contains all required fields
     required_fields = ['type', 'id', 'nonce', 'pow', 'prev', 'tx']
     for field in required_fields:
@@ -99,110 +101,97 @@ def verify_block(block):
             return False
     # type field is the value BLOCK
     if block['type'] != BLOCK:
-        print("Error: Invalid block type")
+        print("Invalid block type")
         return False
     # block ID computed correctly
     exp_id = hashlib.sha256(json.dumps(block['tx'], sort_keys=True).encode('utf8')).hexdigest()
     if block['id'] != exp_id:
-        print("Error: Incorrect block ID")
+        print("Incorrect block ID")
         return False
+    # prev block id is the last block that exists in the blockchain
+     prev_exp_id = hashlib.sha256(json.dumps(client.blockchain[-1]['tx'], sort_keys=True).encode('utf8')).hexdigest()
+    if block['prev'] != prev_exp_id:
+        print("Invalid prev Block ID")
+        return False
+    # validate pow is less than difficulty and pow is correctly calculated from Nonce
+    nonce = block["nonce"]
+    prev = client.blockchain[-1]
+    utx = block['tx']
+    if hashlib.sha256(json.dumps(utx, sort_keys=True).encode('utf8') + prev.encode('utf-8') + nonce.encode('utf-8')).hexdigest() != block['pow']:
+        print("Nonce does not calculate to given pow")
+        return False
+    if int(block['pow'], 16) > DIFFICULTY:
+        print("Pow > Difficulty")
+        return False
+    if not verify_transaction(utx, client.blockchain):
+        print("Invalid transaction")
+        return False
+    return True  # passes all checks and is a valid black
 
 
 def verify_transaction(tx, blockchain):
-    if confirm_utx_format(tx):  # is correct format
-        # Check if transaction is of correct type
-        if tx['type'] != BLOCK:
-            print("Error: Invalid transaction type")
-            return False
-
-        # Check if transaction input refers to a valid block
-        input_block_id = tx['input']['id']
-        input_block_n = tx['input']['n']
-        found_block = False
-        for block in blockchain:
-            if block['id'] == input_block_id:
-                found_block = True
-                if input_block_n >= len(block['tx']):
-                    print("Error: Invalid transaction input")
-                    return False
-                else:
-                    input_tx = block['tx'][input_block_n]
-                    break
-
-        if not found_block:
-            print("Error: Invalid transaction input block")
-            return False
-
-        # Verify ECDSA signature
-        input_tx_pub_key = input_tx['output'][0]['pub_key']
-        input_tx_sig = tx['sig']
-        vk_input_tx_pub_key = VerifyingKey.from_string(bytes.fromhex(input_tx_pub_key))
-        try:
-            assert vk_input_tx_pub_key.verify(bytes.fromhex(input_tx_sig), json.dumps(tx['input'], sort_keys=True).encode('utf8'))
-        except Exception as e:
-            print("Error verifying transaction signature:", e)
-            return False
-
-        # Check if the sum of outputs equals the total input
-        total_output = sum(out['value'] for out in tx['output'])
-        input_amount = input_tx['output'][0]['value']
-        if total_output != input_amount:
-            print("Error: Outputs do not match input amount")
-            return False
-
-        # Check for invalid values and ensure only two outputs
-        if len(tx['output']) > 2 or len(tx['output']) < 1:
-            print("Error: Invalid number of transaction outputs")
-            return False
-
-        for out in tx['output']:
-            if out['value'] <= 0:
-                print("Error: Invalid transaction output value")
-                return False
-
-        return True
-    return False
-
-
-def confirm_utx_format(utx):
     # Check if all required keys are present
     required_keys = ['type', 'input', 'sig', 'output']
     for key in required_keys:
-        if key not in utx:
+        if key not in tx:
             print(f"Error: Key '{key}' is missing in the utx transaction")
             return False
-
-    # Check the data types and structure of the transaction
-    if not isinstance(utx['type'], int):
-        print("Error: 'type' must be an integer")
+    # check type is correct
+    if tx['type'] != TRANSACTION:
+        print("Invalid transaction type")
+        return False
+     # Ensure valid number of outputs
+    if len(tx['output']) > 2 or len(tx['output']) < 1:
+        print("Error: Invalid number of transaction outputs")
         return False
 
-    if not isinstance(utx['input'], dict) or 'id' not in utx['input'] or 'n' not in utx['input']:
-        print("Error: 'input' must be a dictionary containing 'id' and 'n'")
-        return False
-
-    if not isinstance(utx['sig'], str):
-        print("Error: 'sig' must be a string")
-        return False
-
-    if not isinstance(utx['output'], list) or len(utx['output']) < 1 or len(utx['output']) > 2:
-        print("Error: 'output' must be a list with 1 or 2 elements")
-        return False
-
-    for output in utx['output']:
-        if not isinstance(output, dict) or 'value' not in output or 'pub_key' not in output:
-            print("Error: Each 'output' element must be a dictionary containing 'value' and 'pub_key'")
+    # Check if transaction input refers to a valid block
+    input_block_id = tx['input']['id']
+    input_block_n = tx['input']['n']  # index of the output tx in block it's referring to (payment to the spender that they're now spending)
+    found_block = False
+    for i in range(len(blockchain)):  # go through all blocks in existing blockchain
+        if blockchain[i]["tx"]["input"]["id"] == input_block_id:  # check if any block already in blockchain spent it already
+            print("Input is already spent")
             return False
+        if blockchain[i]['id'] == input_block_id:  # find the block it's referring to
+            found_block = True  # block exists
+            if input_block_n >= len(blockchain[i]['tx']):  # transaction index is valid
+                print("Error: Invalid transaction index")
+                return False
+            input_tx = blockchain[i]['tx']['output'][input_block_n]  # set where the coins to be paid are coming from
+            break
 
-        if not isinstance(output['value'], int) or output['value'] <= 0:
-            print("Error: 'value' must be a positive integer")
+    if not found_block:
+        print("Error: Could not find input block in blockchain")
+        return False
+
+    total_output = tx['output'][0]['value']  # coins being paid out, don't include coinbase part
+
+    if len(tx['output']) > 1:  # if there is a coinbase transaction attached, verify that value
+        coinbase_output = tx['output'][1]['value']
+        if coinbase_output != COINBASE:
+            print("Incorrect coinbase value")
             return False
+        
+    if total_output <= 0 or not isinstance(total_output, int):  # non zero, non negative, integer output value
+        print("Zero/negative or non integer output value")
+        return False
 
-        if not isinstance(output['pub_key'], str):
-            print("Error: 'pub_key' must be a string")
-            return False
+    input_amount = input_tx['value']
+    if total_output != input_amount:
+        print("Error: Output does not match input amount")
+        return False
 
-    return True
+
+     # Verify ECDSA signature
+    input_tx_pub_key = input_tx['output'][0]['pub_key']
+    input_tx_sig = tx['sig']
+    vk_input_tx_pub_key = VerifyingKey.from_string(bytes.fromhex(input_tx_pub_key))
+    try:
+        assert vk_input_tx_pub_key.verify(bytes.fromhex(input_tx_sig), json.dumps(tx['input'], sort_keys=True).encode('utf8'))
+    except Exception as e:
+        print("Error verifying transaction signature:", e)
+        return False
 
 
 def mine_transaction(utx, prev):
