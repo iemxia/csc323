@@ -3,7 +3,6 @@ from ecdsa import VerifyingKey, SigningKey
 from Crypto.Cipher import AES
 from Crypto import Random
 import random
-from ecdsa.util import string_to_number
 from p2pnetwork.node import Node
 
 SERVER_ADDR = "zachcoin.net"
@@ -63,7 +62,7 @@ class ZachCoinClient(Node):
 
     def node_message(self, connected_node, data):
         # print("node_message from " + connected_node.id + ": " + json.dumps(data,indent=2))
-        print("node_message from " + connected_node.id + "type: " + json.dumps(data["type"], indent=2))
+        print("node_message from " + connected_node.id)
 
         if data != None:
             if 'type' in data:
@@ -144,7 +143,8 @@ def verify_transaction(tx, blockchain, existing_block):
 
     # Ensure valid number of outputs
     if len(tx['output']) > 2 or len(tx['output']) < 1:
-        print("Error: Invalid number of transaction outputs")
+        print(len(tx["output"]))
+        print("Invalid number of transaction outputs")
         return False
 
     # Check if transaction input refers to a valid block
@@ -261,7 +261,7 @@ def main():
               "=" * (int(len(slogan) / 2) - int(len('ZachCoin™ ') / 2)))
         print(slogan)
         print("=" * len(slogan), '\n')
-        x = input("\t0: Print keys\n\t1: Print blockchain\n\t2: Print UTX pool\n\t3: Mine\n\t4: verify existing block\n\t5: submit invalid block\nEnter your choice -> ")
+        x = input("\t0: Print keys\n\t1: Print blockchain\n\t2: Print UTX pool\n\t3: Mine\n\t4: verify existing block\n\t5: submit invalid block\n\nEnter your choice -> ")
         try:
             x = int(x)
         except:
@@ -279,6 +279,7 @@ def main():
         elif x == 3:  # verifying a utx and try to mine
             not_mined = True
             while not_mined:  # keep trying to find a transaction that will verify
+                print("finding valid transaction")
                 utx_index = random.randint(0, len(client.utx) - 1)
                 tx = client.utx[utx_index]
                 if verify_transaction(tx, client.blockchain, False):  # once valid transaction found
@@ -298,11 +299,12 @@ def main():
                         "tx": tx
                     }
                     client.send_to_nodes(zc_block)  # try to send to server if block is mined and created
-                    not_mined = True
+                    # not_mined = False
                     print("Block mined")
         elif x == 4:  # test my verify block fcn verifies a block that should be verified
             utx_index = random.randint(1, len(client.blockchain) - 1)
             block_to_test = client.blockchain[utx_index]
+            print(json.dumps(block_to_test,indent=2))
             if verify_block(block_to_test, client, utx_index-1, True):
                 print("block verified")
             else:
@@ -331,9 +333,13 @@ def main():
             }
             client.send_to_nodes(bad_zc_block)
         elif x == 6:  # find block with my public key as an output in a transaction
+            found = False
             for i in range(1, len(client.blockchain) - 1):
                 if client.blockchain[i]["tx"]["output"][1]["pub_key"] == my_pub_key:
+                    found = True
                     print(f"Found proof of my mining at index {i}")
+            if found is False:
+                print("Did not find block I mined")
         # elif x == 5:  # test invalid block is invalid
         #     pass
         input()
