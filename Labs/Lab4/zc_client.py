@@ -122,13 +122,13 @@ def verify_block(block, client, prev_index, existing_tf):
     if int(block['pow'], 16) > DIFFICULTY:
         print("Pow > Difficulty")
         return False
-    if not verify_transaction(utx, client.blockchain, existing_tf):
+    if not verify_transaction(utx, client.blockchain, existing_tf, True):
         print("Invalid transaction")
         return False
     return True  # passes all checks and is a valid black
 
 
-def verify_transaction(tx, blockchain, existing_block):
+def verify_transaction(tx, blockchain, existing_block, adding_new):
     # Check if all required keys are present
     required_keys = ['type', 'input', 'sig', 'output']
     for key in required_keys:
@@ -142,10 +142,16 @@ def verify_transaction(tx, blockchain, existing_block):
         return False
 
     # Ensure valid number of outputs
-    if len(tx['output']) > 2 or len(tx['output']) < 1:
-        print(len(tx["output"]))
-        print("Invalid number of transaction outputs")
-        return False
+    if existing_block:
+        if len(tx['output']) > 3 or len(tx['output']) < 1:
+            print(len(tx["output"]))
+            print("Invalid number of transaction outputs (existing block)")
+            return False
+    else:
+        if len(tx['output']) > 2 or len(tx['output']) < 1:
+            print(len(tx["output"]))
+            print("Invalid number of transaction outputs (utx)")
+            return False
 
     # Check if transaction input refers to a valid block
     input_block_id = tx['input']['id']
@@ -154,8 +160,8 @@ def verify_transaction(tx, blockchain, existing_block):
     input_tx = None  # set variable for place where coins are coming from
     for i in range(len(blockchain)):  # go through all blocks in existing blockchain
         if existing_block is False:  # for testing valid blocks that don't exist already, for testing pre-existing blocks for debugging
-            if blockchain[i]["tx"]["input"]["id"] == input_block_id:  # check if any block already in blockchain spent it already
-                print("Input is already spent")
+            if blockchain[i]["tx"]["input"]["id"] == input_block_id and blockchain[i]["tx"]["input"]["n"] == tx["input"]["n"]:  # check if any block already in blockchain spent it already
+                print("Input is already spent")  # go through all unverfified transactions check if their input refers to an output, list of unspent
                 return False
         if blockchain[i]['id'] == input_block_id:  # find the block it's referring to
             found_block = True  # block exists
@@ -169,21 +175,28 @@ def verify_transaction(tx, blockchain, existing_block):
         print("Error: Could not find input block in blockchain")
         return False
 
-    total_output = tx['output'][0]['value']  # coins being paid out, don't include coinbase part
-
-    if len(tx['output']) > 1:  # if there is a coinbase transaction attached, verify that value
-        coinbase_output = tx['output'][1]['value']
+    total_output = 0
+    if adding_new:  # verifying transaction in block
+        for i in range(len(tx["output"])-1):  # don't include coinbase value
+            total_output += tx['output'][i]['value']  # coins being paid out, don't include coinbase part
+    else:  # verifying transaction alone
+        for i in range(len(tx["output"])):
+            total_output += tx['output'][i]['value']
+    # verify coinbase output
+    if adding_new:
+        coinbase_output = tx['output'][-1]['value']
         if coinbase_output != COINBASE:
             print("Incorrect coinbase value")
             return False
 
-    if total_output <= 0 or not isinstance(total_output, int):  # non zero, non negative, integer output value
+    if int(total_output) <= 0 or not isinstance(total_output, int):  # non zero, non negative, integer output value
         print("Zero/negative or non integer output value")
         return False
 
     input_amount = input_tx['value']
     if total_output != input_amount:
         print("Error: Output does not match input amount")
+        print(f"total output {total_output}, input amt: {input_amount}")
         return False
 
     # Verify ECDSA signature
@@ -253,6 +266,8 @@ def main():
     client.connect_with_node(SERVER_ADDR, SERVER_PORT)
     print("Starting ZachCoin™ Client:", sys.argv[1])
     time.sleep(2)
+    my_block = None
+    my_tx_idx = 0
 
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -261,7 +276,7 @@ def main():
               "=" * (int(len(slogan) / 2) - int(len('ZachCoin™ ') / 2)))
         print(slogan)
         print("=" * len(slogan), '\n')
-        x = input("\t0: Print keys\n\t1: Print blockchain\n\t2: Print UTX pool\n\t3: Mine\n\t4: verify existing block\n\t5: submit invalid block\n\nEnter your choice -> ")
+        x = input("\t0: Print keys\n\t1: Print blockchain\n\t2: Print UTX pool\n\t3: Mine\n\t4: verify existing block\n\t5: print my tx\n\nEnter your choice -> ")
         try:
             x = int(x)
         except:
@@ -309,38 +324,65 @@ def main():
                 print("block verified")
             else:
                 print("something's wrong in ur code, fix it lols")
-        elif x == 5:  # submit an invalid block
-            bad_zc_block = {
-            "type": BLOCK,
-            "id": "invalid id",
-            "nonce": "invalid",
-            "pow": "invalid",
-            "prev": client.blockchain[-1]["id"],
-            "tx": {
-                "type": TRANSACTION,
-                "input": {
-                    "id": "potato",
-                     "n": 0
-                },
-                "sig": "potato",
-                "output": [
-                    {
-                        "value": 50,
-                        "pub_key": "potato"
-                        }
-                    ]
-                }
-            }
-            client.send_to_nodes(bad_zc_block)
+        elif x == 5:  # print my transaction block
+            print("My 25 coins block: ", client.blockchain[273])
+            my_block = client.blockchain[273]
         elif x == 6:  # find block with my public key as an output in a transaction
             found = False
-            for i in range(1, len(client.blockchain) - 1):
-                if client.blockchain[i]["tx"]["output"][1]["pub_key"] == my_pub_key:
-                    found = True
-                    print(f"Found proof of my mining at index {i}")
+            for i in range(1, len(client.blockchain)):
+                for j in range(len(client.blockchain[i]["tx"]["output"])):
+                    if client.blockchain[i]["tx"]["output"][j]["pub_key"] == my_pub_key:
+                        found = True
+                        print(f"Found proof of block paying to me at index {i}", json.dumps(client.blockchain[i], indent=2))
             if found is False:
-                print("Did not find block I mined")
-        # elif x == 5:  # test invalid block is invalid
+                print("Did not find block")
+        elif x == 7: # submit my own transaction
+            input_tx = {
+                "id": my_block["id"],
+                "n": 0
+            }
+            sig = sk.sign(json.dumps(input_tx, sort_keys=True).encode('utf8')).hex()
+            tx = {
+                "type": TRANSACTION,
+                "input": input_tx,
+                "sig": sig,
+                "output": [
+                    {
+                        "value": 10,
+                        "pub_key": "81124c3b51a23e43c5480dc7987369a591862f451ecc6b8312923761f15528054a20a8047a7ff6f8878161af5eeced39"
+                    },
+                    {
+                        "value": 15,
+                        "pub_key": my_pub_key
+                    }
+                ]
+            }
+            client.send_to_nodes(tx)
+            my_tx_idx = len(client.utx) - 1
+            print("my utx at index ", my_tx_idx)
+        elif x == 8:  # mine my own transaction
+            tx = client.utx[856]
+            if verify_transaction(tx, client.blockchain, False):  # once valid transaction found
+                print("valid transaction found")
+                tx = add_coin_base_tx(tx)  # add coinbase tx
+                print(f"starting to mine tx at index 856")
+                pow, nonce = mine_transaction(tx, client.blockchain[-1]["id"])  # try to mine it
+                block_id = hashlib.sha256(json.dumps(tx, sort_keys=True).encode('utf8')).hexdigest()
+                prev_id = client.blockchain[-1]["id"]
+                # tx is the same
+                zc_block = {
+                    "type": BLOCK,
+                    "id": block_id,
+                    "nonce": nonce,
+                    "pow": pow,
+                    "prev": prev_id,
+                    "tx": tx
+                }
+                print(zc_block)
+                client.send_to_nodes(zc_block)  # try to send to server if block is mined and created
+                # not_mined = False
+                print("Block mined")
+
         #     pass
         input()
 
